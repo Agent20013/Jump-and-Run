@@ -1403,7 +1403,16 @@
         slideButton.classList.remove("active");
       });
 
+      function isTextInput(event) {
+        const target = event.target;
+        return target instanceof HTMLInputElement
+          || target instanceof HTMLTextAreaElement
+          || target instanceof HTMLSelectElement
+          || (target instanceof HTMLElement && target.isContentEditable);
+      }
+
       window.addEventListener("keydown", event => {
+        if (isTextInput(event)) return;
         if (["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp", " ", "a", "d", "A", "D", "s", "S", "Shift"].includes(event.key)) event.preventDefault();
         keys.add(event.key.toLowerCase());
         if (event.code === "Space" && !event.repeat) jump();
@@ -1411,6 +1420,7 @@
         if (event.key.toLowerCase() === "x" && !event.repeat) fireLaser();
       });
       window.addEventListener("keyup", event => {
+        if (isTextInput(event)) return;
         keys.delete(event.key.toLowerCase());
       });
       window.addEventListener("blur", () => {
