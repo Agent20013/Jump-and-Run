@@ -1404,11 +1404,19 @@
       });
 
       function isTextInput(event) {
-        const target = event.target;
-        return target instanceof HTMLInputElement
-          || target instanceof HTMLTextAreaElement
-          || target instanceof HTMLSelectElement
-          || (target instanceof HTMLElement && target.isContentEditable);
+        const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+        const target = path.find(node => node instanceof HTMLElement)
+          || (event.target instanceof HTMLElement ? event.target : null);
+        return Boolean(target && (
+          target.matches("input, textarea, select")
+          || target.closest("input, textarea, select")
+          || target.isContentEditable
+        ));
+      }
+
+      for (const input of [accountUsernameInput, accountPasswordInput]) {
+        input.addEventListener("keydown", event => event.stopPropagation());
+        input.addEventListener("keyup", event => event.stopPropagation());
       }
 
       window.addEventListener("keydown", event => {
