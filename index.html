@@ -1,0 +1,2460 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#080b1b">
+  <title>Mondhüpfer — Lunar Jump &amp; Run</title>
+  <script type="text/javascript" src="https://download.playfab.com/PlayFabClientApi.js" defer></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #080b1b;
+      color: #f4f4ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    body {
+      background: radial-gradient(ellipse at 50% 110%, #20265a 0%, #0c1027 48%, #080b1b 100%);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #game {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .brand {
+      position: absolute;
+      top: max(22px, env(safe-area-inset-top));
+      left: max(24px, env(safe-area-inset-left));
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 800;
+      color: #a9b5df;
+    }
+
+    .brand strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 20px;
+      letter-spacing: .04em;
+      color: #fff;
+    }
+
+    .score {
+      position: absolute;
+      top: max(24px, env(safe-area-inset-top));
+      right: max(26px, env(safe-area-inset-right));
+      text-align: right;
+      color: #a9b5df;
+      font-size: 11px;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .score strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 25px;
+      letter-spacing: 0;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .return-menu {
+      position: absolute;
+      top: max(78px, env(safe-area-inset-top));
+      right: max(26px, env(safe-area-inset-right));
+      padding: 7px 12px;
+      border: 1px solid #ffffff35;
+      border-radius: 999px;
+      background: #10172dcc;
+      color: #f4f4ff;
+      font: inherit;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      cursor: pointer;
+      pointer-events: auto;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .return-menu:hover { background: #ffffff20; }
+
+    .hint {
+      position: absolute;
+      top: 82px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #b6c0e0;
+      font-size: 12px;
+      letter-spacing: .02em;
+      text-align: center;
+      text-shadow: 0 2px 8px #080b1b;
+      white-space: nowrap;
+    }
+
+    .hint kbd {
+      display: inline-block;
+      padding: 3px 7px;
+      margin: 0 2px;
+      border: 1px solid #ffffff35;
+      border-radius: 5px;
+      background: #ffffff10;
+      color: #fff;
+      font: inherit;
+      font-size: 10px;
+    }
+
+    .controls {
+      position: absolute;
+      right: max(30px, env(safe-area-inset-right));
+      bottom: max(28px, env(safe-area-inset-bottom));
+      left: max(30px, env(safe-area-inset-left));
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .stick, .jump, .slide, .laser, .boost {
+      pointer-events: auto;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .stick {
+      position: relative;
+      width: 116px;
+      height: 116px;
+      border: 1px solid #ffffff25;
+      border-radius: 50%;
+      background: #c6d4ff0d;
+      box-shadow: inset 0 0 24px #a5baff0d, 0 8px 30px #0003;
+    }
+
+    .stick::before, .stick::after {
+      position: absolute;
+      content: "";
+      background: #ffffff18;
+    }
+
+    .stick::before { top: 50%; left: 18px; right: 18px; height: 1px; }
+    .stick::after { top: 18px; bottom: 18px; left: 50%; width: 1px; }
+
+    .stick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 47px;
+      height: 47px;
+      border: 1px solid #b9c9ff80;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #dce5ff55, #8294d433);
+      box-shadow: 0 0 20px #90a6ff35, inset 0 1px 5px #fff3;
+      transform: translate(-50%, -50%);
+      transition: background .12s;
+    }
+
+    .jump, .laser, .boost {
+      position: relative;
+      display: grid;
+      width: 84px;
+      height: 84px;
+      place-items: center;
+      border: 1px solid #ffdc8d9c;
+      border-radius: 50%;
+      outline: none;
+      background: radial-gradient(circle at 35% 28%, #ffe9ae, #ffae42 72%);
+      box-shadow: 0 0 34px #ffb34755, inset 0 2px 7px #fff9, 0 7px 22px #0005;
+      color: #351b24;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      transition: filter .12s, transform .12s;
+    }
+
+    .jump:active, .laser:active, .boost:active {
+      filter: brightness(1.13);
+      transform: scale(.96);
+    }
+
+    .jump::after {
+      position: absolute;
+      inset: -8px;
+      border: 1px solid #ffc96a42;
+      border-radius: 50%;
+      content: "";
+    }
+
+    .action-buttons {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .slide, .laser, .boost {
+      width: 70px;
+      height: 42px;
+      border-radius: 24px;
+      font: inherit;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      touch-action: none;
+      pointer-events: auto;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .slide {
+      border: 1px solid #8ce8ff70;
+      background: linear-gradient(145deg, #a4efff, #54a9d8);
+      box-shadow: 0 0 22px #57c8f044, inset 0 2px 6px #fff9, 0 7px 22px #0005;
+      color: #10263a;
+    }
+
+    .slide:active, .slide.active { filter: brightness(1.15); transform: scale(.96); }
+    .laser { border: 1px solid #ff7e9c80; background: #a63c6177; color: #ffe4ed; }
+    .boost { border: 1px solid #9af4e580; background: #438d8a77; color: #d8fff8; }
+
+    .message {
+      position: absolute;
+      top: 43%;
+      left: 50%;
+      width: min(90vw, 430px);
+      padding: 16px 22px;
+      border: 1px solid #ffffff25;
+      border-radius: 14px;
+      background: #0c1027cc;
+      color: #e7eaff;
+      font-size: 14px;
+      line-height: 1.5;
+      text-align: center;
+      opacity: 0;
+      transform: translate(-50%, 8px);
+      transition: opacity .25s, transform .25s;
+    }
+
+    .message.visible {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .menu {
+      position: fixed;
+      z-index: 5;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background: #070a18b8;
+      backdrop-filter: blur(7px);
+    }
+
+    .menu[hidden] { display: none; }
+
+    .menu-card {
+      width: min(100%, 620px);
+      max-height: 94vh;
+      overflow-y: auto;
+      padding: 32px;
+      border: 1px solid #ffffff26;
+      border-radius: 24px;
+      background: linear-gradient(145deg, #171d3aef, #10142bea);
+      box-shadow: 0 24px 90px #0008, inset 0 1px #ffffff18;
+      text-align: center;
+    }
+
+    .menu-kicker {
+      color: #a9b5df;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+
+    .menu h1 {
+      margin: 8px 0 7px;
+      font-size: clamp(28px, 6vw, 42px);
+      letter-spacing: -.04em;
+    }
+
+    .menu-intro {
+      margin: 0 0 23px;
+      color: #b6c0e0;
+      font-size: 13px;
+    }
+
+    .mode-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin: 0 0 16px;
+    }
+
+    .mode {
+      padding: 11px 12px;
+      border: 1px solid #ffffff20;
+      border-radius: 12px;
+      background: #ffffff08;
+      color: #f4f4ff;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .mode.selected { border-color: #9af4e5; background: #8df5ec14; }
+    .mode strong { display: block; font-size: 12px; }
+    .mode small { display: block; margin-top: 4px; color: #aeb9db; font-size: 10px; }
+
+    .character-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .character {
+      min-width: 0;
+      padding: 14px 8px 13px;
+      border: 1px solid #ffffff20;
+      border-radius: 14px;
+      background: #ffffff08;
+      color: #f4f4ff;
+      font: inherit;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, transform .15s;
+    }
+
+    .character:hover { transform: translateY(-2px); background: #ffffff10; }
+    .character.selected { border-color: #9af4e5; background: #8df5ec14; box-shadow: 0 0 20px #8df5ec18; }
+    .character-icon { display: block; margin-bottom: 6px; font-size: 30px; }
+    .character strong { display: block; font-size: 13px; }
+    .character small { display: block; min-height: 31px; margin-top: 5px; color: #aeb9db; font-size: 10px; line-height: 1.45; }
+    .wallet { margin: 0 0 12px; color: #c4b5ff; font-size: 13px; font-weight: 800; }
+    .account-panel {
+      margin: 0 0 16px;
+      padding: 12px;
+      border: 1px solid #ffffff20;
+      border-radius: 14px;
+      background: #080d1b99;
+      text-align: left;
+    }
+    .account-title { margin: 0 0 8px; color: #dce5ff; font-size: 11px; font-weight: 800; }
+    .account-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .account-form[hidden] { display: none; }
+    .account-form label { color: #aeb9db; font-size: 9px; }
+    .account-form input {
+      width: 100%;
+      margin-top: 4px;
+      padding: 8px;
+      border: 1px solid #ffffff28;
+      border-radius: 8px;
+      background: #060918;
+      color: #f4f4ff;
+      font: inherit;
+      font-size: 12px;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .account-actions { display: flex; grid-column: 1 / -1; gap: 8px; }
+    .account-panel button {
+      padding: 8px 10px;
+      border: 1px solid #ffffff26;
+      border-radius: 8px;
+      background: #8df5ec18;
+      color: #eafffb;
+      font: inherit;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .account-panel button:disabled { opacity: .55; cursor: wait; }
+    .account-panel .account-secondary { background: #ffffff0a; }
+    #accountSession { align-items: center; flex-wrap: wrap; gap: 7px; color: #a9f6ec; font-size: 10px; }
+    #accountSession:not([hidden]) { display: flex; }
+    #accountStatus { min-height: 14px; margin: 8px 0 0; color: #aeb9db; font-size: 10px; line-height: 1.4; }
+    .shop-upgrades { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 18px; }
+    .level-map {
+      display: none;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0 0 16px;
+      padding: 12px;
+      border: 1px solid #ffffff20;
+      border-radius: 14px;
+      background: #080d1b99;
+    }
+    .level-map.visible { display: grid; }
+    .map-level {
+      min-height: 58px;
+      padding: 7px 4px;
+      border: 1px solid #ffffff20;
+      border-radius: 10px;
+      background: #ffffff08;
+      color: #f4f4ff;
+      font: inherit;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .map-level.selected { border-color: #9af4e5; background: #8df5ec18; }
+    .map-level.completed { border-color: #c4b5ff; }
+    .map-level small { display: block; margin-top: 4px; color: #aeb9db; font-size: 9px; }
+    .upgrade {
+      padding: 10px;
+      border: 1px solid #ffffff20;
+      border-radius: 12px;
+      background: #ffffff08;
+      color: #f4f4ff;
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .upgrade:disabled { opacity: .55; cursor: default; }
+
+    .stage {
+      position: absolute;
+      top: 135px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #a9f6ec;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-align: center;
+      text-shadow: 0 2px 8px #080b1b;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .start-game {
+      width: min(100%, 260px);
+      padding: 13px 22px;
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(110deg, #a5f8e9, #7edcf0);
+      box-shadow: 0 8px 28px #79ecd64a;
+      color: #122334;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .start-game:hover { filter: brightness(1.08); }
+
+    @media (max-width: 600px) {
+      .brand { top: max(16px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left)); font-size: 9px; }
+      .brand strong { font-size: 17px; }
+      .score { top: max(17px, env(safe-area-inset-top)); right: max(18px, env(safe-area-inset-right)); font-size: 9px; }
+      .score strong { font-size: 21px; }
+      .hint { top: 70px; width: 90%; font-size: 10px; white-space: normal; }
+      .stage { top: 112px; font-size: 9px; }
+      .controls { right: max(22px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); left: max(22px, env(safe-area-inset-left)); }
+      .stick { width: 104px; height: 104px; }
+      .jump { width: 76px; height: 76px; font-size: 10px; }
+      .slide, .laser, .boost { width: 62px; height: 36px; font-size: 8px; }
+      .menu-card { padding: 25px 17px; }
+      .character-list { gap: 6px; }
+      .character { padding-inline: 5px; }
+      .character small { font-size: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Mond Jump-and-Run-Spiel"></canvas>
+  <div class="hud">
+    <div class="brand">Eine Reise über den Mond<strong>MONDHÜPFER</strong></div>
+    <div class="score">Tanks<strong id="score">0</strong></div>
+    <button class="return-menu" id="returnMenu" type="button" aria-label="Zurück zum Menü">MENÜ</button>
+    <div class="hint">Laufen: Joystick / ← → · Sprung: Leertaste · Supersprung: ↑ / BOOST · Laser: X · Höhle: hineinfallen</div>
+    <div class="stage" id="stage"></div>
+    <div class="message" id="message">Autsch, in einem Krater gelandet!<br>Du startest gleich wieder von vorn.</div>
+    <div class="controls">
+      <div class="stick" id="stick" aria-label="Joystick zum Steuern">
+        <div class="stick-knob" id="knob"></div>
+      </div>
+      <div class="action-buttons">
+        <button class="slide" id="slide" type="button" aria-label="Zum Rutschen gedrückt halten">RUTSCH</button>
+        <button class="jump" id="jump" type="button" aria-label="Springen">SPRING</button>
+        <button class="boost" id="boost" type="button" aria-label="Supersprung, kostet 2 Tanks">BOOST · 2</button>
+        <button class="laser" id="laser" type="button" aria-label="Laser schießen, kostet 3 Tanks">LASER · 3</button>
+      </div>
+    </div>
+  </div>
+  <section class="menu" id="menu" aria-label="Spielmenü">
+    <div class="menu-card">
+      <div class="menu-kicker">Wähle deine Mondfigur</div>
+      <h1>Wer springt zum Mond?</h1>
+      <p class="menu-intro">Sammle Mondstaub, kaufe Figuren und verbessere deine Fähigkeiten.</p>
+      <p class="wallet">Mondstaub: <span id="wallet">0</span></p>
+      <section class="account-panel" aria-label="PlayFab-Konto">
+        <p class="account-title">Cloud-Spielstand · optional</p>
+        <form class="account-form" id="accountForm">
+          <label for="accountUsername">Nutzername
+            <input id="accountUsername" name="username" type="text" minlength="3" maxlength="20" autocomplete="username" required>
+          </label>
+          <label for="accountPassword">Passwort
+            <input id="accountPassword" name="password" type="password" minlength="6" autocomplete="current-password" required>
+          </label>
+          <div class="account-actions">
+            <button id="loginAccount" type="submit">Anmelden</button>
+            <button class="account-secondary" id="registerAccount" type="button">Konto erstellen</button>
+          </div>
+        </form>
+        <div id="accountSession" hidden>
+          <strong id="accountName"></strong>
+          <button id="syncAccount" type="button">Jetzt speichern</button>
+          <button class="account-secondary" id="logoutAccount" type="button">Abmelden</button>
+        </div>
+        <p id="accountStatus" role="status" aria-live="polite">Offline-Spiel ist verfügbar.</p>
+      </section>
+      <div class="mode-list" role="group" aria-label="Spielmodus auswählen">
+        <button class="mode selected" type="button" data-mode="levels" aria-pressed="true">
+          <strong>Levelreise</strong>
+          <small>Level auswählen und Fortschritt ansehen</small>
+        </button>
+        <button class="mode" type="button" data-mode="endless" aria-pressed="false">
+          <strong>Endlosmodus</strong>
+          <small>Springe so weit du kannst</small>
+        </button>
+      </div>
+      <div class="level-map visible" id="levelMap" aria-label="Levelkarte"></div>
+      <div class="character-list" role="group" aria-label="Charakter auswählen">
+        <button class="character selected" type="button" data-character="astro" aria-pressed="true">
+          <span class="character-icon">👩‍🚀</span>
+          <strong>Astro</strong>
+          <small>Allrounder<br>Ausgewogene Werte</small>
+        </button>
+        <button class="character" type="button" data-character="nova" aria-pressed="false">
+          <span class="character-icon">🤖</span>
+          <strong>Nova</strong>
+          <small>Flitzeflink<br>30% schneller</small>
+        </button>
+        <button class="character" type="button" data-character="luna" aria-pressed="false">
+          <span class="character-icon">🛸</span>
+          <strong>Luna</strong>
+          <small>Mondhüpfer<br>22% höherer Sprung</small>
+        </button>
+        <button class="character" type="button" data-character="orion" aria-pressed="false">
+          <span class="character-icon">👨‍🚀</span>
+          <strong>Orion</strong>
+          <small>Höhlenspezialist<br>10% schneller</small>
+        </button>
+        <button class="character" type="button" data-character="comet" aria-pressed="false">
+          <span class="character-icon">👾</span>
+          <strong>Komet</strong>
+          <small>Sprungprofi<br>15% höherer Sprung</small>
+        </button>
+      </div>
+      <div class="shop-upgrades" aria-label="Upgrades kaufen">
+        <button class="upgrade" id="speedUpgrade" type="button"></button>
+        <button class="upgrade" id="jumpUpgrade" type="button"></button>
+        <button class="upgrade" id="tankUpgrade" type="button"></button>
+        <button class="upgrade" id="laserUpgrade" type="button"></button>
+      </div>
+      <button class="start-game" id="startGame" type="button">Ab ins Abenteuer</button>
+    </div>
+  </section>
+  <script>
+    (() => {
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const stick = document.getElementById("stick");
+      const knob = document.getElementById("knob");
+      const jumpButton = document.getElementById("jump");
+      const boostButton = document.getElementById("boost");
+      const laserButton = document.getElementById("laser");
+      const slideButton = document.getElementById("slide");
+      const scoreLabel = document.getElementById("score");
+      const walletLabel = document.getElementById("wallet");
+      const message = document.getElementById("message");
+      const menu = document.getElementById("menu");
+      const startGameButton = document.getElementById("startGame");
+      const returnMenuButton = document.getElementById("returnMenu");
+      const characterButtons = document.querySelectorAll(".character");
+      const modeButtons = document.querySelectorAll(".mode");
+      const stageLabel = document.getElementById("stage");
+      const menuTitle = document.querySelector(".menu h1");
+      const menuIntro = document.querySelector(".menu-intro");
+      const speedUpgradeButton = document.getElementById("speedUpgrade");
+      const jumpUpgradeButton = document.getElementById("jumpUpgrade");
+      const tankUpgradeButton = document.getElementById("tankUpgrade");
+      const laserUpgradeButton = document.getElementById("laserUpgrade");
+      const levelMap = document.getElementById("levelMap");
+      const accountForm = document.getElementById("accountForm");
+      const accountUsernameInput = document.getElementById("accountUsername");
+      const accountPasswordInput = document.getElementById("accountPassword");
+      const accountNameLabel = document.getElementById("accountName");
+      const accountSession = document.getElementById("accountSession");
+      const accountStatus = document.getElementById("accountStatus");
+      const loginAccountButton = document.getElementById("loginAccount");
+      const registerAccountButton = document.getElementById("registerAccount");
+      const syncAccountButton = document.getElementById("syncAccount");
+      const logoutAccountButton = document.getElementById("logoutAccount");
+
+      const gravity = 980;
+      const player = { x: 100, y: 0, width: 34, height: 54, vx: 0, vy: 0, grounded: false, sliding: false, jumpStrength: 0, platform: null };
+      const groundSegments = [];
+      const enemies = [];
+      const obstacles = [];
+      const fallingSpikes = [];
+      const caves = [];
+      const tanks = [];
+      const lasers = [];
+      const caveEnemies = [];
+      const caveObstacles = [];
+      const moonDustPickups = [];
+      const particles = [];
+      const keys = new Set();
+      const starscape = [];
+      const characters = {
+        astro: { speed: 1, jump: 1, suit: "#f0f3ff", helmet: "#e7ebfa", accent: "#8df5ec", visor: "#273e65", cost: 0 },
+        nova: { speed: 1.3, jump: 1, suit: "#ffc6ec", helmet: "#ffe2f5", accent: "#ff81cf", visor: "#592c66", cost: 45 },
+        luna: { speed: 1, jump: 1.22, suit: "#c9f3ff", helmet: "#e4fbff", accent: "#8edfff", visor: "#244966", cost: 55 },
+        orion: { speed: 1.1, jump: 1.08, suit: "#e5d5ff", helmet: "#f1e9ff", accent: "#bd91ff", visor: "#35285d", cost: 80 },
+        comet: { speed: 1.05, jump: 1.15, suit: "#d8ffb8", helmet: "#edffd9", accent: "#a9f76f", visor: "#31512a", cost: 100 }
+      };
+      const levelRoutes = [
+        { name: "Kraterfeld", steps: [[0, -35, 190, "spikes"], [58, 40, 180, "plain"], [0, -55, 190, "enemy"], [58, 35, 185, "plain"], [0, -20, 190, "barrier"], [0, 0, 200, "goal"]] },
+        { name: "Staubklippen", steps: [[0, -30, 180, "enemy"], [58, 35, 175, "plain"], [0, -25, 190, "spikes"], [58, 45, 180, "plain"], [0, -40, 175, "barrier"], [0, 20, 180, "spikes"], [58, -5, 200, "goal"]] },
+        { name: "Mondruinen", steps: [[0, 35, 180, "spikes"], [58, -45, 170, "plain"], [0, 35, 180, "enemy"], [58, -60, 180, "plain"], [0, 45, 180, "barrier"], [0, -30, 175, "enemy"], [58, 40, 180, "spikes"], [0, -20, 200, "goal"]] },
+        { name: "Kristallhöhlen", steps: [[0, -25, 190, "enemy"], [58, 35, 180, "plain"], [0, -35, 185, "spikes"], [58, 40, 180, "plain"], [0, -20, 190, "barrier"], [58, 25, 180, "enemy"], [0, -10, 200, "goal"]] },
+        { name: "Eisiger Mond", steps: [[0, 25, 180, "spikes"], [58, -35, 175, "plain"], [0, 20, 190, "enemy"], [58, -45, 180, "plain"], [0, 35, 175, "barrier"], [58, -25, 185, "spikes"], [0, 15, 200, "goal"]] },
+        { name: "Sternenwrack", steps: [[0, -40, 185, "enemy"], [58, 35, 175, "spikes"], [0, -20, 180, "plain"], [58, 40, 185, "barrier"], [0, -30, 175, "enemy"], [58, 25, 180, "spikes"], [0, 0, 200, "goal"]] },
+        { name: "Basaltbogen", steps: [[58, 0, 180, "enemy"], [0, 24, 180, "crate"], [0, -24, 190, "wall"], [58, 0, 180, "plain"], [0, 0, 180, "enemy"], [0, 0, 200, "goal"]] },
+        { name: "Schattenschacht", steps: [[0, 0, 180, "crate"], [58, 0, 190, "spikes"], [0, 0, 180, "enemy"], [0, 0, 190, "wall"], [58, 0, 180, "crate"], [0, 0, 200, "goal"]] },
+        { name: "Mondmeer", steps: [[0, 0, 185, "enemy"], [58, 25, 180, "wall"], [0, -25, 180, "crate"], [0, 0, 190, "spikes"], [58, 0, 180, "enemy"], [0, 0, 200, "goal"]] },
+        { name: "Lichtlose Tiefe", steps: [[58, 0, 190, "crate"], [0, 0, 180, "enemy"], [0, 0, 190, "wall"], [58, 0, 180, "spikes"], [0, 0, 190, "crate"], [0, 0, 200, "goal"]] }
+      ];
+      let width = 0;
+      let height = 0;
+      let pixelRatio = 1;
+      let cameraX = 0;
+      let cameraY = 0;
+      let direction = 0;
+      let slideHeld = false;
+      let gameStarted = false;
+      let isDying = false;
+      let pendingLevelAdvance = false;
+      let pendingResume = false;
+      let gameMode = "levels";
+      let currentLevel = 0;
+      let nextGroundIndex = 1;
+      let goal = null;
+      const saveKey = "mondhuepfer-save";
+      const playFabTitleId = "64681";
+      const cloudSaveKey = "mondhuepferSave";
+      let saveData = normalizeSaveData(null);
+      let tanksThisRun = 0;
+      let authenticatedUsername = "";
+      let authenticationInProgress = false;
+      let cloudSyncBlocked = false;
+      let cloudSavePending = false;
+      let cloudSaveInFlight = false;
+      let cloudSaveTimer = null;
+      let logoutAfterSave = false;
+      try {
+        const storedSave = JSON.parse(localStorage.getItem(saveKey) || "null");
+        saveData = normalizeSaveData(storedSave);
+      } catch {
+        saveData = normalizeSaveData(null);
+      }
+      let caveMode = false;
+      let activeCave = null;
+      let lastTime = 0;
+      let messageTimer = 0;
+      let selectedCharacter = "astro";
+      let joystickPointer = null;
+      let slidePointer = null;
+
+      function resize() {
+        pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.round(width * pixelRatio);
+        canvas.height = Math.round(height * pixelRatio);
+        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        starscape.length = 0;
+        let seed = 1987;
+        const random = () => {
+          seed = (seed * 16807) % 2147483647;
+          return (seed - 1) / 2147483646;
+        };
+        for (let i = 0; i < 180; i++) {
+          starscape.push({ x: random() * width, y: random() * height, r: .4 + random() * 1.35, a: .25 + random() * .65, phase: random() * 6.28 });
+        }
+      }
+      function groundLevel() {
+        return Math.max(680, height - 85);
+      }
+
+      function groundYAt(x) {
+        if (groundSegments.length === 0) return groundLevel();
+        const first = groundSegments[0];
+        const firstCenter = first.x + first.width / 2;
+        if (x <= firstCenter) return first.y;
+        for (let i = 1; i < groundSegments.length; i++) {
+          const previous = groundSegments[i - 1];
+          const current = groundSegments[i];
+          const previousCenter = previous.x + previous.width / 2;
+          const currentCenter = current.x + current.width / 2;
+          if (x <= currentCenter) {
+            const progress = (x - previousCenter) / (currentCenter - previousCenter);
+            return previous.y + (current.y - previous.y) * progress;
+          }
+        }
+        return groundSegments[groundSegments.length - 1].y;
+      }
+
+      function updateGroundObjects() {
+        for (const enemy of enemies) enemy.y = groundYAt(enemy.x) - 28;
+        for (const obstacle of obstacles) {
+          const surfaceY = groundYAt(obstacle.x + obstacle.width / 2);
+          obstacle.y = obstacle.type === "spikes" ? surfaceY : surfaceY - obstacle.height;
+        }
+        for (const spike of fallingSpikes) {
+          spike.targetY = groundYAt(spike.x + spike.width / 2);
+          if (spike.state === "waiting") spike.y = spike.targetY - 190;
+        }
+        for (const tank of tanks) tank.y = groundYAt(tank.x) - 38;
+        if (goal) goal.y = groundYAt(goal.x + goal.width / 2) - 68;
+      }
+
+      function addCave(gapStart, gapWidth) {
+        if (gapWidth < 45) return;
+        const caveWidth = Math.min(88, gapWidth - 10);
+        const x = gapStart + (gapWidth - caveWidth) / 2;
+        caves.push({ x, width: caveWidth, exitX: x + 460 });
+      }
+
+      function saveProgress() {
+        saveData = normalizeSaveData(saveData);
+        localStorage.setItem(saveKey, JSON.stringify(saveData));
+        walletLabel.textContent = String(saveData.money);
+        refreshShop();
+        scheduleCloudSave();
+      }
+
+      function normalizeSaveData(value) {
+        const data = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+        const money = Number(data.money);
+        const normalizeLevel = level => Number.isFinite(Number(level))
+          ? Math.max(0, Math.min(3, Math.trunc(Number(level))))
+          : 0;
+        const unlocked = Array.isArray(data.unlocked)
+          ? data.unlocked.filter(name => typeof name === "string" && Object.prototype.hasOwnProperty.call(characters, name))
+          : [];
+        const completedLevels = Array.isArray(data.completedLevels)
+          ? data.completedLevels.filter(index => Number.isInteger(index) && index >= 0 && index < levelRoutes.length)
+          : [];
+        return {
+          money: Number.isFinite(money) ? Math.max(0, money) : 0,
+          unlocked: [...new Set(["astro", ...unlocked])],
+          speedLevel: normalizeLevel(data.speedLevel),
+          jumpLevel: normalizeLevel(data.jumpLevel),
+          tankLevel: normalizeLevel(data.tankLevel),
+          laserLevel: normalizeLevel(data.laserLevel),
+          completedLevels: [...new Set(completedLevels)]
+        };
+      }
+
+      function mergeSaveData(localData, cloudData) {
+        const local = normalizeSaveData(localData);
+        const cloud = normalizeSaveData(cloudData);
+        return normalizeSaveData({
+          money: Math.max(local.money, cloud.money),
+          unlocked: [...local.unlocked, ...cloud.unlocked],
+          speedLevel: Math.max(local.speedLevel, cloud.speedLevel),
+          jumpLevel: Math.max(local.jumpLevel, cloud.jumpLevel),
+          tankLevel: Math.max(local.tankLevel, cloud.tankLevel),
+          laserLevel: Math.max(local.laserLevel, cloud.laserLevel),
+          completedLevels: [...local.completedLevels, ...cloud.completedLevels]
+        });
+      }
+
+      function getPersistentSaveData() {
+        return normalizeSaveData(saveData);
+      }
+
+      function getPlayFabClient() {
+        const playFab = window.PlayFab;
+        const client = window.PlayFabClientSDK;
+        if (!playFab?.settings || !client) return null;
+        playFab.settings.titleId = playFabTitleId;
+        return client;
+      }
+
+      function setAccountStatus(status) {
+        accountStatus.textContent = status;
+      }
+
+      function getPlayFabError(error) {
+        return error?.errorMessage || error?.error || "Unbekannter PlayFab-Fehler.";
+      }
+
+      function getResponseData(result) {
+        return result?.data && typeof result.data === "object" ? result.data : result;
+      }
+
+      function setSignedIn(username) {
+        authenticatedUsername = username;
+        accountForm.hidden = true;
+        accountSession.hidden = false;
+        accountNameLabel.textContent = `Angemeldet als ${username}`;
+        accountPasswordInput.value = "";
+      }
+
+      function setAuthenticationBusy(busy) {
+        authenticationInProgress = busy;
+        loginAccountButton.disabled = busy;
+        registerAccountButton.disabled = busy;
+      }
+
+      function authenticate(mode) {
+        if (authenticationInProgress) return;
+        const username = accountUsernameInput.value.trim();
+        const password = accountPasswordInput.value;
+        if (username.length < 3) {
+          setAccountStatus("Der Nutzername muss mindestens 3 Zeichen enthalten.");
+          return;
+        }
+        if (password.length < 6) {
+          setAccountStatus("Das Passwort muss mindestens 6 Zeichen enthalten.");
+          return;
+        }
+        const client = getPlayFabClient();
+        if (!client) {
+          setAccountStatus("PlayFab konnte nicht geladen werden. Du kannst weiterhin offline spielen.");
+          return;
+        }
+
+        setAuthenticationBusy(true);
+        setAccountStatus(mode === "register" ? "Konto wird erstellt …" : "Anmeldung läuft …");
+        const request = mode === "register"
+          ? { Username: username, Password: password, RequireBothUsernameAndEmail: false }
+          : { Username: username, Password: password };
+        const api = mode === "register" ? client.RegisterPlayFabUser : client.LoginWithPlayFab;
+        if (typeof api !== "function") {
+          setAuthenticationBusy(false);
+          setAccountStatus("Die PlayFab-Client-API für die Anmeldung ist nicht verfügbar.");
+          return;
+        }
+        api.call(client, request, (result, error) => {
+          setAuthenticationBusy(false);
+          if (!result) {
+            setAccountStatus(`${mode === "register" ? "Registrierung" : "Anmeldung"} fehlgeschlagen: ${getPlayFabError(error)}`);
+            return;
+          }
+          cloudSyncBlocked = false;
+          setSignedIn(username);
+          setAccountStatus("Angemeldet. Cloud-Spielstand wird geladen …");
+          loadCloudProgress();
+        });
+      }
+
+      function loadCloudProgress() {
+        const client = getPlayFabClient();
+        if (!client || typeof client.GetUserData !== "function") {
+          cloudSyncBlocked = true;
+          setAccountStatus("PlayFab-Daten können nicht geladen werden. Lokaler Spielstand bleibt erhalten.");
+          return;
+        }
+        client.GetUserData({ Keys: [cloudSaveKey] }, (result, error) => {
+          if (!result) {
+            cloudSyncBlocked = true;
+            setAccountStatus(`Cloud-Spielstand konnte nicht geladen werden: ${getPlayFabError(error)}. Lokaler Stand bleibt erhalten.`);
+            return;
+          }
+          const response = getResponseData(result);
+          const userData = response?.Data;
+          if (!userData || typeof userData !== "object") {
+            cloudSyncBlocked = true;
+            setAccountStatus("PlayFab hat ungültige Spieldaten geliefert. Der lokale Spielstand bleibt erhalten.");
+            return;
+          }
+
+          const storedValue = userData[cloudSaveKey]?.Value;
+          if (storedValue !== undefined) {
+            if (typeof storedValue !== "string") {
+              cloudSyncBlocked = true;
+              setAccountStatus("Der Cloud-Spielstand hat ein ungültiges Format. Der lokale Stand bleibt erhalten.");
+              return;
+            }
+            let cloudData;
+            try {
+              cloudData = JSON.parse(storedValue);
+            } catch {
+              cloudSyncBlocked = true;
+              setAccountStatus("Der Cloud-Spielstand ist beschädigt. Der lokale Stand bleibt erhalten; nutze „Jetzt speichern“, um ihn zu ersetzen.");
+              return;
+            }
+            if (!cloudData || typeof cloudData !== "object" || Array.isArray(cloudData)) {
+              cloudSyncBlocked = true;
+              setAccountStatus("Der Cloud-Spielstand hat ein ungültiges Format. Der lokale Stand bleibt erhalten.");
+              return;
+            }
+            saveData = mergeSaveData(saveData, cloudData);
+          }
+          saveProgress();
+          setAccountStatus(storedValue === undefined
+            ? "Kein Cloud-Spielstand vorhanden. Der lokale Fortschritt wird erstmals gespeichert."
+            : "Cloud- und lokaler Spielstand wurden zusammengeführt.");
+        });
+      }
+
+      function scheduleCloudSave() {
+        if (!authenticatedUsername || cloudSyncBlocked) return;
+        cloudSavePending = true;
+        if (cloudSaveTimer !== null) clearTimeout(cloudSaveTimer);
+        cloudSaveTimer = setTimeout(flushCloudSave, 700);
+        setAccountStatus("Fortschritt wird mit der Cloud synchronisiert …");
+      }
+
+      function flushCloudSave() {
+        if (!authenticatedUsername || !cloudSavePending || cloudSyncBlocked || cloudSaveInFlight) return;
+        const client = getPlayFabClient();
+        if (!client || typeof client.UpdateUserData !== "function") {
+          cloudSyncBlocked = true;
+          setAccountStatus("PlayFab-Speichern ist nicht verfügbar. Der lokale Spielstand bleibt erhalten.");
+          return;
+        }
+        if (cloudSaveTimer !== null) {
+          clearTimeout(cloudSaveTimer);
+          cloudSaveTimer = null;
+        }
+        cloudSavePending = false;
+        cloudSaveInFlight = true;
+        const data = JSON.stringify(getPersistentSaveData());
+        client.UpdateUserData({ Data: { [cloudSaveKey]: data } }, (result, error) => {
+          cloudSaveInFlight = false;
+          if (!result) {
+            cloudSavePending = true;
+            logoutAfterSave = false;
+            setAccountStatus(`Cloud-Speichern fehlgeschlagen: ${getPlayFabError(error)}. Lokal ist der Fortschritt gesichert.`);
+            return;
+          }
+          if (cloudSavePending) {
+            flushCloudSave();
+            return;
+          }
+          setAccountStatus("Cloud-Spielstand gespeichert.");
+          if (logoutAfterSave) window.location.reload();
+        });
+      }
+
+      function saveCloudNow() {
+        if (!authenticatedUsername) {
+          setAccountStatus("Melde dich zuerst an, um den Spielstand zu synchronisieren.");
+          return;
+        }
+        cloudSyncBlocked = false;
+        cloudSavePending = true;
+        logoutAfterSave = false;
+        setAccountStatus("Cloud-Spielstand wird jetzt gespeichert …");
+        flushCloudSave();
+      }
+
+      function refreshShop() {
+        characterButtons.forEach(button => {
+          const name = button.dataset.character;
+          const character = characters[name];
+          const description = button.querySelector("small");
+          const unlocked = saveData.unlocked.includes(name);
+          const selected = name === selectedCharacter;
+          button.classList.toggle("selected", selected);
+          button.setAttribute("aria-pressed", String(selected));
+          button.setAttribute("aria-label", `${character.cost === 0 ? "Astro" : name} ${unlocked ? "auswählen" : `für ${character.cost} Mondstaub kaufen`}`);
+          button.disabled = !unlocked && saveData.money < character.cost;
+          description.textContent = unlocked
+            ? ({
+              astro: "Allrounder · Ausgewogene Werte",
+              nova: "Flitzeflink · 30% schneller",
+              luna: "Mondhüpfer · 22% höherer Sprung",
+              orion: "Höhlenspezialist · 10% schneller",
+              comet: "Sprungprofi · 15% höherer Sprung"
+            })[name]
+            : `Kaufen · ${character.cost} Mondstaub`;
+        });
+        const upgrades = [
+          [speedUpgradeButton, "speedLevel", "Tempo +10%"],
+          [jumpUpgradeButton, "jumpLevel", "Supersprung +10%"],
+          [tankUpgradeButton, "tankLevel", "Tankgröße +2"],
+          [laserUpgradeButton, "laserLevel", "Laserreichweite +20%"]
+        ];
+        for (const [button, key, label] of upgrades) {
+          const level = saveData[key];
+          const cost = 45 + level * 35;
+          button.textContent = level >= 3 ? `${label} · MAX` : `${label} · ${cost} Mondstaub (${level}/3)`;
+          button.disabled = level >= 3 || saveData.money < cost;
+        }
+        renderLevelMap();
+      }
+
+      function buyUpgrade(type) {
+        const levelKey = `${type}Level`;
+        const level = saveData[levelKey];
+        if (level >= 3) return;
+        const cost = 45 + level * 35;
+        if (saveData.money < cost) return;
+        saveData.money -= cost;
+        saveData[levelKey]++;
+        saveProgress();
+      }
+
+      function renderLevelMap() {
+        levelMap.replaceChildren();
+        levelRoutes.forEach((route, index) => {
+          const button = document.createElement("button");
+          const completed = saveData.completedLevels.includes(index);
+          button.type = "button";
+          button.className = `map-level${index === currentLevel ? " selected" : ""}${completed ? " completed" : ""}`;
+          button.setAttribute("aria-pressed", String(index === currentLevel));
+          button.innerHTML = `LEVEL ${index + 1}<small>${completed ? "✓ geschafft" : "○ offen"}</small>`;
+          button.addEventListener("click", () => {
+            currentLevel = index;
+            renderLevelMap();
+          });
+          levelMap.append(button);
+        });
+      }
+
+      function enterCave(cave) {
+        caveMode = true;
+        activeCave = cave;
+        player.height = 54;
+        player.platform = null;
+        activeCave.surfaceY = groundYAt(cave.x + cave.width / 2);
+        activeCave.floorY = activeCave.surfaceY + 150;
+        activeCave.exitX = cave.x + 460;
+        caveEnemies.length = 0;
+        caveObstacles.length = 0;
+        moonDustPickups.length = 0;
+        for (let i = 0; i < 4; i++) {
+          const x = cave.x + 110 + i * 95;
+          caveEnemies.push({ x, y: activeCave.floorY - 28, minX: x - 30, maxX: x + 36, direction: i % 2 ? -1 : 1, speed: 45 + i * 5, phase: i });
+          if (i % 2 === 0) caveObstacles.push({ x: x + 45, y: activeCave.floorY - 34, width: 34, height: 34, type: "crate" });
+          moonDustPickups.push({ x: x + 18, y: activeCave.floorY - 70, taken: false });
+        }
+        player.sliding = false;
+        slideHeld = false;
+        slideButton.classList.remove("active");
+        stageLabel.textContent = "HÖHLENWEG · TANKS UND MONDSTAUB";
+      }
+
+      function leaveCave() {
+        caveMode = false;
+        player.x = activeCave.exitX;
+        player.height = 54;
+        player.y = groundYAt(player.x + player.width / 2) - player.height;
+        player.vx = 0;
+        player.vy = 0;
+        player.grounded = true;
+        player.platform = null;
+        activeCave = null;
+        const caveDust = 20;
+        saveData.money += caveDust;
+        saveProgress();
+        stageLabel.textContent = gameMode === "levels"
+          ? `LEVEL ${currentLevel + 1} · ${levelRoutes[currentLevel].name}`
+          : `ENDLOSMODUS · ABSCHNITT ${Math.floor(Math.max(0, player.x) / 1800) + 1}`;
+        message.innerHTML = `Höhle geschafft!<br>+${caveDust} Mondstaub`;
+        message.classList.add("visible");
+        messageTimer = 1.3;
+        isDying = false;
+        pendingLevelAdvance = false;
+        pendingResume = true;
+      }
+
+      function addFallingSpikes(segment, position = .5) {
+        const spikeWidth = 42;
+        const x = findClearObstacleX(segment, position, spikeWidth);
+        if (x === null) return;
+        fallingSpikes.push({
+          x,
+          y: segment.y - 190,
+          targetY: segment.y,
+          width: spikeWidth,
+          height: 28,
+          state: "waiting",
+          timer: 0
+        });
+      }
+
+      function ensureGroundSegments() {
+        if (gameMode !== "endless" || groundSegments.length === 0) return;
+        const furthest = cameraX + width * 2;
+        while (groundSegments[groundSegments.length - 1].x < furthest) {
+          const index = nextGroundIndex++;
+          const previous = groundSegments[groundSegments.length - 1];
+          const gap = index >= 4 && index % 4 === 1 ? 100 : 0;
+          const x = previous.x + previous.width + gap;
+          if (gap) addCave(previous.x + previous.width, gap);
+          const terrainPattern = [0, 76, -58, 92, -72, 48, -36];
+          const segment = { x, y: groundLevel() + terrainPattern[index % terrainPattern.length], width: 174 + (index % 2) * 26, index };
+          groundSegments.push(segment);
+          if (index % 2 === 1) tanks.push({ x: x + 84, y: segment.y - 38, taken: false, phase: index });
+          if (index >= 2 && index % 3 === 2) {
+            addEnemy(segment, index);
+          }
+          if (index >= 3 && index % 4 === 0) {
+            addSpikes(segment, .58);
+          }
+          if (index >= 6 && index % 6 === 3) {
+            addBarrier(segment, .62);
+          }
+          if (index >= 3 && index % 5 === 2) addCrate(segment, .42);
+          if (index >= 5 && index % 7 === 4) addWall(segment, .72);
+          if (index >= 4 && index % 5 === 1) {
+            addFallingSpikes(segment, .74);
+          }
+        }
+        updateGroundObjects();
+      }
+
+      function addEnemy(segment, index) {
+        const minX = segment.x + 15;
+        enemies.push({
+          x: minX,
+          y: segment.y - 28,
+          minX,
+          maxX: segment.x + segment.width - 43,
+          direction: 1,
+          speed: 68 + index % 3 * 10,
+          phase: index
+        });
+      }
+
+      function addSpikes(segment, position = .58) {
+        const width = 42;
+        const x = findClearObstacleX(segment, position, width);
+        if (x !== null) obstacles.push({ type: "spikes", x, y: segment.y, width, height: 22 });
+      }
+
+      function addBarrier(segment, position = .57) {
+        const width = 64;
+        const height = 36;
+        const x = findClearObstacleX(segment, position, width);
+        if (x !== null) obstacles.push({ type: "barrier", x, y: segment.y - height, width, height });
+      }
+
+      function addCrate(segment, position = .56) {
+        const size = 36;
+        const x = findClearObstacleX(segment, position, size);
+        if (x !== null) obstacles.push({ type: "crate", x, y: segment.y - size, width: size, height: size });
+      }
+
+      function addWall(segment, position = .56) {
+        const width = 24;
+        const height = 58;
+        const x = findClearObstacleX(segment, position, width);
+        if (x !== null) obstacles.push({ type: "wall", x, y: segment.y - height, width, height });
+      }
+
+      function findClearObstacleX(segment, position, width) {
+        const minX = segment.x + 8;
+        const maxX = segment.x + segment.width - width - 8;
+        const positions = [position, .2, .38, .5, .68, .84];
+        for (const candidatePosition of positions) {
+          const x = Math.max(minX, Math.min(maxX, segment.x + segment.width * candidatePosition - width / 2));
+          const overlaps = [...obstacles, ...fallingSpikes].some(item =>
+            x < item.x + item.width + 22 && x + width + 22 > item.x);
+          if (!overlaps) return x;
+        }
+        return null;
+      }
+
+      function buildCourse() {
+        groundSegments.length = 0;
+        enemies.length = 0;
+        obstacles.length = 0;
+        fallingSpikes.length = 0;
+        caves.length = 0;
+        tanks.length = 0;
+        lasers.length = 0;
+        nextGroundIndex = 1;
+        goal = null;
+
+        const start = { x: -220, y: groundLevel(), width: gameMode === "levels" ? 390 : 660, index: 0 };
+        groundSegments.push(start);
+        if (gameMode === "levels") {
+          const route = levelRoutes[currentLevel];
+          let previous = start;
+          route.steps.forEach(([requestedGap, heightChange, segmentWidth, feature], stepIndex) => {
+            const gapStart = previous.x + previous.width;
+            const gapWidth = requestedGap ? Math.max(requestedGap, 100) : 0;
+            if (gapWidth) addCave(gapStart, gapWidth);
+            const terrainOffset = heightChange ? Math.sign(heightChange) * 18 : 0;
+            const segment = {
+              x: gapStart + gapWidth,
+              y: Math.max(groundLevel() - 115, Math.min(groundLevel() + 115, previous.y + terrainOffset)),
+              width: segmentWidth,
+              index: stepIndex + 1
+            };
+            groundSegments.push(segment);
+            if (stepIndex % 2 === 0) tanks.push({ x: segment.x + segment.width / 2, y: segment.y - 38, taken: false, phase: stepIndex });
+            if (feature === "spikes") addSpikes(segment, .62);
+            if (feature === "barrier") addBarrier(segment);
+            if (feature === "enemy") addEnemy(segment, stepIndex + 2);
+            if (feature === "crate") addCrate(segment);
+            if (feature === "wall") addWall(segment);
+            if (feature === "plain" && Math.random() < .35) addCrate(segment, .35 + Math.random() * .4);
+            if (stepIndex % 4 === 3) addFallingSpikes(segment, .74);
+            if (feature === "goal") goal = { x: segment.x + segment.width - 43, y: segment.y - 68, width: 31, height: 68 };
+            previous = segment;
+          });
+          stageLabel.textContent = `LEVEL ${currentLevel + 1} · ${route.name}`;
+          updateGroundObjects();
+        } else {
+          stageLabel.textContent = "ENDLOSMODUS · ABSCHNITT 1";
+          ensureGroundSegments();
+        }
+      }
+
+      function resetPlayer() {
+        cameraX = 0;
+        cameraY = 0;
+        buildCourse();
+        player.x = 100;
+        player.vx = 0;
+        player.vy = 0;
+        player.height = 54;
+        player.y = groundYAt(player.x + player.width / 2) - player.height;
+        player.grounded = true;
+        player.sliding = false;
+        player.jumpStrength = 0;
+        player.platform = null;
+        tanksThisRun = 0;
+        updateTankHud();
+        walletLabel.textContent = String(saveData.money);
+        message.classList.remove("visible");
+        messageTimer = 0;
+        isDying = false;
+        pendingLevelAdvance = false;
+        pendingResume = false;
+        caveMode = false;
+        activeCave = null;
+        slideHeld = false;
+        slideButton.classList.remove("active");
+      }
+
+      function jump(isSuper = false) {
+        if (!gameStarted || messageTimer > 0 || !player.grounded || player.sliding) return;
+        if (isSuper && !spendTanks(2)) return;
+        if (player.height !== 54) {
+          player.y += player.height - 54;
+          player.height = 54;
+        }
+        player.sliding = false;
+        player.jumpStrength = isSuper ? 1 : .55;
+        player.platform = null;
+        player.vy = -(isSuper ? 760 : 530) * characters[selectedCharacter].jump * (1 + saveData.jumpLevel * .1);
+        player.grounded = false;
+        addBurst(player.x + player.width / 2, player.y + player.height, "#d7d8d2", 9);
+      }
+
+      function spendTanks(amount) {
+        if (tanksThisRun < amount) {
+          message.innerHTML = `Nicht genug Tanks!<br>Benötigt: ${amount}`;
+          message.classList.add("visible");
+          messageTimer = .8;
+          pendingResume = true;
+          return false;
+        }
+        tanksThisRun -= amount;
+        updateTankHud();
+        return true;
+      }
+
+      function updateTankHud() {
+        scoreLabel.textContent = `${tanksThisRun}/${6 + saveData.tankLevel * 2}`;
+      }
+
+      function fireLaser() {
+        if (!gameStarted || messageTimer > 0 || !spendTanks(3)) return;
+        const facing = direction || (player.vx < 0 ? -1 : 1);
+        const range = 300 * (1 + saveData.laserLevel * .2);
+        const laser = {
+          x: facing > 0 ? player.x + player.width : player.x,
+          y: player.y + player.height * .45,
+          endX: facing > 0 ? player.x + player.width + range : player.x - range,
+          direction: facing,
+          life: .16
+        };
+        lasers.push(laser);
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const enemy = enemies[i];
+          if (Math.abs(enemy.y + 14 - laser.y) < 34
+            && (facing > 0 ? enemy.x >= laser.x && enemy.x <= laser.endX : enemy.x + 28 <= laser.x && enemy.x + 28 >= laser.endX)) {
+            enemies.splice(i, 1);
+            saveData.money += 5;
+            addBurst(enemy.x + 14, enemy.y + 14, "#ff8ba6", 14);
+          }
+        }
+        for (let i = caveEnemies.length - 1; i >= 0; i--) {
+          const enemy = caveEnemies[i];
+          if (Math.abs(enemy.y + 14 - laser.y) < 34
+            && (facing > 0 ? enemy.x >= laser.x && enemy.x <= laser.endX : enemy.x + 28 <= laser.x && enemy.x + 28 >= laser.endX)) {
+            caveEnemies.splice(i, 1);
+            saveData.money += 5;
+            addBurst(enemy.x + 14, enemy.y + 14, "#ff8ba6", 14);
+          }
+        }
+        saveProgress();
+      }
+
+      function addBurst(x, y, color, count) {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.PI + Math.random() * Math.PI;
+          const speed = 40 + Math.random() * 180;
+          particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: .3 + Math.random() * .35, maxLife: .65, color, size: 2 + Math.random() * 3 });
+        }
+      }
+
+      function setJoystick(clientX, clientY) {
+        const rect = stick.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const max = rect.width * .32;
+        const dx = clientX - centerX;
+        const dy = clientY - centerY;
+        const length = Math.hypot(dx, dy) || 1;
+        const scale = Math.min(1, max / length);
+        const knobX = dx * scale;
+        const knobY = dy * scale;
+        knob.style.left = `calc(50% + ${knobX}px)`;
+        knob.style.top = `calc(50% + ${knobY}px)`;
+        direction = Math.abs(knobX) < 8 ? 0 : knobX / max;
+      }
+
+      function releaseJoystick() {
+        joystickPointer = null;
+        direction = 0;
+        knob.style.left = "50%";
+        knob.style.top = "50%";
+      }
+
+      stick.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        joystickPointer = event.pointerId;
+        stick.setPointerCapture(event.pointerId);
+        setJoystick(event.clientX, event.clientY);
+      });
+      stick.addEventListener("pointermove", event => {
+        if (event.pointerId === joystickPointer) setJoystick(event.clientX, event.clientY);
+      });
+      stick.addEventListener("pointerup", event => {
+        if (event.pointerId === joystickPointer) releaseJoystick();
+      });
+      stick.addEventListener("pointercancel", releaseJoystick);
+
+      jumpButton.addEventListener("click", () => jump());
+      boostButton.addEventListener("click", () => jump(true));
+      laserButton.addEventListener("click", fireLaser);
+
+      slideButton.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        slidePointer = event.pointerId;
+        slideButton.setPointerCapture(event.pointerId);
+        slideHeld = true;
+        slideButton.classList.add("active");
+      });
+      slideButton.addEventListener("pointerup", event => {
+        if (event.pointerId === slidePointer) {
+          slideHeld = false;
+          slidePointer = null;
+          slideButton.classList.remove("active");
+        }
+      });
+      slideButton.addEventListener("pointercancel", () => {
+        slideHeld = false;
+        slidePointer = null;
+        slideButton.classList.remove("active");
+      });
+      slideButton.addEventListener("lostpointercapture", () => {
+        slideHeld = false;
+        slidePointer = null;
+        slideButton.classList.remove("active");
+      });
+
+      window.addEventListener("keydown", event => {
+        if (["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp", " ", "a", "d", "A", "D", "s", "S", "Shift"].includes(event.key)) event.preventDefault();
+        keys.add(event.key.toLowerCase());
+        if (event.code === "Space" && !event.repeat) jump();
+        if (event.key === "ArrowUp" && !event.repeat) jump(true);
+        if (event.key.toLowerCase() === "x" && !event.repeat) fireLaser();
+      });
+      window.addEventListener("keyup", event => {
+        keys.delete(event.key.toLowerCase());
+      });
+      window.addEventListener("blur", () => {
+        keys.clear();
+        releaseJoystick();
+        slideHeld = false;
+        slideButton.classList.remove("active");
+      });
+      window.addEventListener("resize", resize);
+      characterButtons.forEach(button => {
+        button.addEventListener("click", () => {
+          const name = button.dataset.character;
+          const character = characters[name];
+          if (!saveData.unlocked.includes(name)) {
+            if (saveData.money < character.cost) return;
+            saveData.money -= character.cost;
+            saveData.unlocked.push(name);
+            saveProgress();
+          }
+          selectedCharacter = name;
+          refreshShop();
+        });
+      });
+      accountForm.addEventListener("submit", event => {
+        event.preventDefault();
+        authenticate("login");
+      });
+      registerAccountButton.addEventListener("click", () => authenticate("register"));
+      syncAccountButton.addEventListener("click", saveCloudNow);
+      logoutAccountButton.addEventListener("click", () => {
+        if (cloudSyncBlocked) {
+          window.location.reload();
+          return;
+        }
+        if (cloudSaveInFlight) {
+          logoutAfterSave = true;
+          setAccountStatus("Warte, bis der Cloud-Spielstand gespeichert ist …");
+          return;
+        }
+        if (cloudSavePending) {
+          logoutAfterSave = true;
+          setAccountStatus("Speichere den letzten Fortschritt vor der Abmeldung …");
+          flushCloudSave();
+          return;
+        }
+        window.location.reload();
+      });
+      speedUpgradeButton.addEventListener("click", () => buyUpgrade("speed"));
+      jumpUpgradeButton.addEventListener("click", () => buyUpgrade("jump"));
+      tankUpgradeButton.addEventListener("click", () => buyUpgrade("tank"));
+      laserUpgradeButton.addEventListener("click", () => buyUpgrade("laser"));
+      modeButtons.forEach(button => {
+        button.addEventListener("click", () => {
+          gameMode = button.dataset.mode;
+          levelMap.classList.toggle("visible", gameMode === "levels");
+          modeButtons.forEach(option => {
+            const selected = option === button;
+            option.classList.toggle("selected", selected);
+            option.setAttribute("aria-pressed", String(selected));
+          });
+        });
+      });
+      startGameButton.addEventListener("click", () => {
+        menuTitle.textContent = "Wer springt zum Mond?";
+        menuIntro.textContent = "Sammle Mondstaub, kaufe Figuren und verbessere deine Fähigkeiten.";
+        startGameButton.textContent = "Ab ins Abenteuer";
+        gameStarted = true;
+        menu.hidden = true;
+        resetPlayer();
+      });
+      returnMenuButton.addEventListener("click", () => {
+        gameStarted = false;
+        keys.clear();
+        releaseJoystick();
+        slideHeld = false;
+        slidePointer = null;
+        slideButton.classList.remove("active");
+        menuTitle.textContent = "Ab ins Abenteuer?";
+        menuIntro.textContent = "Sammle Mondstaub, kaufe Figuren und verbessere deine Fähigkeiten.";
+        startGameButton.textContent = "Ab ins Abenteuer";
+        menu.hidden = false;
+      });
+
+      function drawBackground(time) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "#050817");
+        gradient.addColorStop(.55, "#0d1530");
+        gradient.addColorStop(1, "#262c50");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        const nebulaX = width * .72 - (cameraX * .035 % (width * .3));
+        const nebula = ctx.createRadialGradient(nebulaX, height * .38, 0, nebulaX, height * .38, width * .55);
+        nebula.addColorStop(0, "#718bd22e");
+        nebula.addColorStop(.48, "#314d8a1f");
+        nebula.addColorStop(1, "#20234a00");
+        ctx.fillStyle = nebula;
+        ctx.fillRect(0, 0, width, height);
+
+        for (const star of starscape) {
+          const twinkle = .72 + Math.sin(time * .0014 + star.phase) * .28;
+          const x = ((star.x - cameraX * .06) % width + width) % width;
+          const y = ((star.y - cameraY * .035) % height + height) % height;
+          ctx.globalAlpha = star.a * twinkle;
+          ctx.fillStyle = "#e5edff";
+          ctx.beginPath();
+          ctx.arc(x, y, star.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        drawPlanet(width * .78 - cameraX * .018, height * .3 - cameraY * .015);
+      }
+
+      function drawPlanet(x, y) {
+        const radius = Math.max(43, Math.min(76, width * .09));
+        const glow = ctx.createRadialGradient(x, y, radius * .55, x, y, radius * 1.9);
+        glow.addColorStop(0, "#75a9ff24");
+        glow.addColorStop(1, "#75a9ff00");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 1.9, 0, Math.PI * 2);
+        ctx.fill();
+        const sphere = ctx.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
+        sphere.addColorStop(0, "#dcecff");
+        sphere.addColorStop(.45, "#87a3c8");
+        sphere.addColorStop(1, "#304a74");
+        ctx.fillStyle = sphere;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.globalAlpha = .28;
+        ctx.fillStyle = "#f7fafc";
+        ctx.beginPath();
+        ctx.ellipse(x - radius * .28, y - radius * .32, radius * .42, radius * .08, -.25, 0, Math.PI * 2);
+        ctx.ellipse(x + radius * .25, y + radius * .18, radius * .34, radius * .07, -.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawGround() {
+        const startX = cameraX - 40;
+        const endX = cameraX + width + 40;
+        const visibleCaves = caves.filter(cave => cave.x + cave.width > startX && cave.x < endX);
+        const points = [{ x: startX, y: groundYAt(startX) }];
+        for (const segment of groundSegments) {
+          const center = segment.x + segment.width / 2;
+          if (center > startX && center < endX) points.push({ x: center, y: segment.y });
+        }
+        points.push({ x: endX, y: groundYAt(endX) });
+
+        const ground = ctx.createLinearGradient(0, 0, 0, height);
+        ground.addColorStop(0, "#a9adb0");
+        ground.addColorStop(.18, "#777d83");
+        ground.addColorStop(.55, "#51565e");
+        ground.addColorStop(1, "#292e3a");
+        ctx.beginPath();
+        ctx.moveTo(points[0].x - cameraX, points[0].y - cameraY);
+        for (let i = 1; i < points.length; i++) {
+          ctx.lineTo(points[i].x - cameraX, points[i].y - cameraY);
+        }
+        ctx.lineTo(endX - cameraX, height + 120);
+        ctx.lineTo(startX - cameraX, height + 120);
+        ctx.closePath();
+        ctx.fillStyle = ground;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(points[0].x - cameraX, points[0].y - cameraY);
+        for (let i = 1; i < points.length; i++) {
+          ctx.lineTo(points[i].x - cameraX, points[i].y - cameraY);
+        }
+        ctx.strokeStyle = "#d9dcda";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = "#454a51";
+        const firstCrater = Math.ceil(startX / 108) * 108;
+        for (let craterX = firstCrater; craterX < endX; craterX += 108) {
+          if (visibleCaves.some(cave => craterX >= cave.x - 6 && craterX <= cave.x + cave.width + 6)) continue;
+          const craterScreenX = craterX - cameraX;
+          const craterScreenY = groundYAt(craterX) - cameraY;
+          ctx.beginPath();
+          ctx.ellipse(craterScreenX, craterScreenY + 18, 12, 4, -.08, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#b5b8b8";
+          ctx.beginPath();
+          ctx.ellipse(craterScreenX - 2, craterScreenY + 16, 7, 2, -.08, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#454a51";
+        }
+      }
+
+      function drawCaveMarker(cave) {
+        const x = cave.x - cameraX;
+        const y = groundYAt(cave.x) - cameraY;
+        if (x + cave.width < -40 || x > width + 40 || y < -90 || y > height + 40) return;
+        ctx.save();
+        ctx.fillStyle = "#050710";
+        ctx.fillRect(x, y - 1, cave.width, 166);
+        ctx.fillStyle = "#a9adb0";
+        ctx.fillRect(x - 3, y - 3, 3, 8);
+        ctx.fillRect(x + cave.width, y - 3, 3, 8);
+        ctx.strokeStyle = "#3e4555";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x, y + 1);
+        ctx.lineTo(x, y + 158);
+        ctx.moveTo(x + cave.width, y + 1);
+        ctx.lineTo(x + cave.width, y + 158);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawTank(tank, time) {
+        if (tank.taken) return;
+        const x = tank.x - cameraX;
+        const y = tank.y - cameraY + Math.sin(time * .003 + tank.phase) * 4;
+        if (x < -25 || x > width + 25 || y < -25 || y > height + 25) return;
+        ctx.save();
+        ctx.shadowColor = "#8df5ec";
+        ctx.shadowBlur = 15;
+        ctx.fillStyle = "#91f3df";
+        ctx.beginPath();
+        ctx.roundRect(x - 9, y - 13, 18, 26, 5);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#1c6870";
+        ctx.fillRect(x - 5, y - 5, 10, 10);
+        ctx.fillStyle = "#d9fff3";
+        ctx.fillRect(x - 3, y - 10, 6, 3);
+        ctx.restore();
+      }
+
+      function drawCaveScene(time) {
+        const caveFloorY = activeCave.floorY;
+        const floorScreenY = caveFloorY - cameraY;
+        const caveBackground = ctx.createLinearGradient(0, 0, 0, height);
+        caveBackground.addColorStop(0, "#11162a");
+        caveBackground.addColorStop(.65, "#080b14");
+        caveBackground.addColorStop(1, "#02030a");
+        ctx.fillStyle = caveBackground;
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = "#37343a";
+        ctx.fillRect(0, floorScreenY, width, height - floorScreenY + 10);
+        ctx.fillStyle = "#8f8263";
+        ctx.fillRect(0, floorScreenY, width, 4);
+        for (let x = -((cameraX % 190) + 190) % 190; x < width; x += 190) {
+          const crystalY = floorScreenY - 38 - Math.sin(time * .003 + x) * 5;
+          ctx.fillStyle = "#ffe28a";
+          ctx.shadowColor = "#ffe28a";
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.moveTo(x, crystalY - 9);
+          ctx.lineTo(x + 7, crystalY);
+          ctx.lineTo(x, crystalY + 9);
+          ctx.lineTo(x - 7, crystalY);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        for (const obstacle of caveObstacles) drawCrate(obstacle);
+        for (const enemy of caveEnemies) drawEnemy(enemy, time);
+        for (const pickup of moonDustPickups) {
+          if (pickup.taken) continue;
+          const x = pickup.x - cameraX;
+          const y = pickup.y - cameraY + Math.sin(time * .003 + pickup.x) * 4;
+          ctx.fillStyle = "#c4b5ff";
+          ctx.shadowColor = "#c4b5ff";
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(x, y, 7, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        for (const laser of lasers) drawLaser(laser);
+        const exitScreenX = activeCave.exitX - cameraX;
+        if (exitScreenX < width + 80) {
+          ctx.fillStyle = "#8df5ec";
+          ctx.shadowColor = "#8df5ec";
+          ctx.shadowBlur = 24;
+          ctx.beginPath();
+          ctx.ellipse(exitScreenX, floorScreenY - 34, 20, 36, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "#10182b";
+          ctx.beginPath();
+          ctx.ellipse(exitScreenX, floorScreenY - 34, 11, 27, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function drawEnemy(enemy, time) {
+        const x = enemy.x - cameraX;
+        const y = enemy.y - cameraY + Math.sin(time * .006 + enemy.phase) * 2;
+        if (x < -40 || x > width + 40 || y < -40 || y > height + 40) return;
+        ctx.save();
+        ctx.translate(x + 14, y + 14);
+        ctx.shadowColor = "#ff7a64";
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = "#858b92";
+        ctx.beginPath();
+        ctx.roundRect(-13, -7, 26, 17, 5);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#ff7069";
+        ctx.beginPath();
+        ctx.arc(-6, -1, 3, 0, Math.PI * 2);
+        ctx.arc(6, -1, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#34383d";
+        ctx.beginPath();
+        ctx.arc(-9, 11, 5, 0, Math.PI * 2);
+        ctx.arc(9, 11, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#c6cbd0";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-13, 10);
+        ctx.lineTo(-17, 15);
+        ctx.moveTo(13, 10);
+        ctx.lineTo(17, 15);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawSpikes(obstacle) {
+        const x = obstacle.x - cameraX;
+        const y = obstacle.y - cameraY;
+        if (x + obstacle.width < -20 || x > width + 20 || y < -30 || y > height + 20) return;
+        ctx.save();
+        ctx.shadowColor = "#d8dce0";
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = "#777c82";
+        ctx.beginPath();
+        const spikeCount = 3;
+        const spikeWidth = obstacle.width / spikeCount;
+        for (let i = 0; i < spikeCount; i++) {
+          const left = x + i * spikeWidth;
+          ctx.moveTo(left, y);
+          ctx.lineTo(left + spikeWidth / 2, y - obstacle.height);
+          ctx.lineTo(left + spikeWidth, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawFallingSpikes(spike) {
+        const x = spike.x - cameraX;
+        const y = spike.y - cameraY;
+        if (x + spike.width < -20 || x > width + 20) return;
+        if (spike.state === "waiting" || spike.state === "warning") {
+          const markerY = spike.targetY - 150 - cameraY;
+          ctx.save();
+          ctx.strokeStyle = spike.state === "warning" ? "#ff8c70" : "#ffd98a";
+          ctx.fillStyle = ctx.strokeStyle;
+          ctx.globalAlpha = spike.state === "warning" ? .75 + Math.sin(spike.timer * 35) * .2 : .8;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 5]);
+          ctx.beginPath();
+          ctx.moveTo(x + spike.width / 2, markerY + 12);
+          ctx.lineTo(x + spike.width / 2, spike.targetY - cameraY - 8);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.moveTo(x + spike.width / 2, markerY - 10);
+          ctx.lineTo(x + spike.width / 2 - 9, markerY + 7);
+          ctx.lineTo(x + spike.width / 2 + 9, markerY + 7);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+          return;
+        }
+        drawSpikes(spike);
+      }
+
+      function drawBarrier(obstacle) {
+        const x = obstacle.x - cameraX;
+        const y = obstacle.y - cameraY;
+        if (x + obstacle.width < -20 || x > width + 20 || y < -40 || y > height + 40) return;
+        ctx.save();
+        ctx.shadowColor = "#ffb65c";
+        ctx.shadowBlur = 14;
+        const metal = ctx.createLinearGradient(x, y, x, y + obstacle.height);
+        metal.addColorStop(0, "#ffe09a");
+        metal.addColorStop(.28, "#bd8550");
+        metal.addColorStop(1, "#515866");
+        ctx.fillStyle = metal;
+        ctx.beginPath();
+        ctx.roundRect(x, y, obstacle.width, obstacle.height, 6);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#313846";
+        ctx.beginPath();
+        ctx.roundRect(x + 5, y + 5, obstacle.width - 10, obstacle.height - 10, 4);
+        ctx.fill();
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(x + 8, y + 8, obstacle.width - 16, obstacle.height - 16, 3);
+        ctx.clip();
+        ctx.fillStyle = "#f3b45f";
+        for (let stripe = -obstacle.height; stripe < obstacle.width; stripe += 18) {
+          ctx.beginPath();
+          ctx.moveTo(x + stripe, y + obstacle.height - 8);
+          ctx.lineTo(x + stripe + 12, y + obstacle.height - 8);
+          ctx.lineTo(x + stripe + obstacle.height, y + 8);
+          ctx.lineTo(x + stripe + obstacle.height - 12, y + 8);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+        ctx.fillStyle = "#d9fff3";
+        ctx.shadowColor = "#8df5ec";
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(x + 8, y + 7, 2, 0, Math.PI * 2);
+        ctx.arc(x + obstacle.width - 8, y + 7, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawCrate(obstacle) {
+        const x = obstacle.x - cameraX;
+        const y = obstacle.y - cameraY;
+        if (x + obstacle.width < -20 || x > width + 20 || y < -40 || y > height + 40) return;
+        ctx.save();
+        ctx.fillStyle = "#717780";
+        ctx.strokeStyle = "#c5c9c8";
+        ctx.lineWidth = 2;
+        ctx.fillRect(x, y, obstacle.width, obstacle.height);
+        ctx.strokeRect(x + 1, y + 1, obstacle.width - 2, obstacle.height - 2);
+        ctx.strokeStyle = "#4a505a";
+        ctx.beginPath();
+        ctx.moveTo(x + 4, y + 4);
+        ctx.lineTo(x + obstacle.width - 4, y + obstacle.height - 4);
+        ctx.moveTo(x + obstacle.width - 4, y + 4);
+        ctx.lineTo(x + 4, y + obstacle.height - 4);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawWall(obstacle) {
+        const x = obstacle.x - cameraX;
+        const y = obstacle.y - cameraY;
+        if (x + obstacle.width < -20 || x > width + 20 || y < -40 || y > height + 40) return;
+        ctx.fillStyle = "#707780";
+        ctx.fillRect(x, y, obstacle.width, obstacle.height);
+        ctx.fillStyle = "#969ca1";
+        ctx.fillRect(x, y, 4, obstacle.height);
+        ctx.strokeStyle = "#4a505a";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 4, y + 14);
+        ctx.lineTo(x + obstacle.width, y + 14);
+        ctx.moveTo(x + 4, y + obstacle.height - 12);
+        ctx.lineTo(x + obstacle.width, y + obstacle.height - 12);
+        ctx.stroke();
+      }
+
+      function drawLaser(laser) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, laser.life * 8);
+        ctx.strokeStyle = "#ff789c";
+        ctx.shadowColor = "#ff789c";
+        ctx.shadowBlur = 14;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(laser.x - cameraX, laser.y - cameraY);
+        ctx.lineTo(laser.endX - cameraX, laser.y - cameraY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawHill(obstacle) {
+        const x = obstacle.x - cameraX;
+        const y = obstacle.y - cameraY;
+        const peak = y - obstacle.height;
+        if (x + obstacle.width < -20 || x > width + 20 || y < -30 || peak > height + 40) return;
+        ctx.save();
+        ctx.shadowColor = "#9ca7ad";
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = "#747b80";
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + obstacle.width * .28, peak + 24);
+        ctx.lineTo(x + obstacle.width * .44, peak);
+        ctx.lineTo(x + obstacle.width * .58, peak + 30);
+        ctx.lineTo(x + obstacle.width * .73, peak + 11);
+        ctx.lineTo(x + obstacle.width, y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "#c5c9c8";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x + obstacle.width * .28, peak + 24);
+        ctx.lineTo(x + obstacle.width * .44, peak + 2);
+        ctx.lineTo(x + obstacle.width * .56, peak + 28);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawGoal(time) {
+        if (!goal) return;
+        const x = goal.x - cameraX;
+        const y = goal.y - cameraY;
+        if (x + goal.width < -40 || x > width + 40 || y < -80 || y > height + 80) return;
+        ctx.save();
+        ctx.shadowColor = "#8df5ec";
+        ctx.shadowBlur = 18 + Math.sin(time * .004) * 5;
+        ctx.strokeStyle = "#a9f6ec";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.roundRect(x, y, goal.width, goal.height, 16);
+        ctx.stroke();
+        ctx.fillStyle = "#8df5ec24";
+        ctx.fill();
+        ctx.fillStyle = "#eafffb";
+        ctx.beginPath();
+        ctx.arc(x + goal.width / 2, y + 22 + Math.sin(time * .004) * 3, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawPlayer(time) {
+        const x = player.x - cameraX;
+        const y = player.y - cameraY;
+        const character = characters[selectedCharacter];
+        const bob = player.grounded ? Math.sin(time * .008) * 1.5 : 0;
+        ctx.save();
+        ctx.translate(x + player.width / 2, y + player.height / 2 + bob);
+        if (player.sliding) ctx.scale(1, .52);
+
+        if (!player.grounded) {
+          ctx.fillStyle = "#d9d8d0";
+          ctx.globalAlpha = .72;
+          ctx.shadowColor = "#e7e2cf";
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.moveTo(-8, 20);
+          ctx.quadraticCurveTo(-3, 32 + Math.sin(time * .03) * 4, 0, 39);
+          ctx.quadraticCurveTo(5, 30 + Math.cos(time * .04) * 4, 8, 20);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.shadowBlur = 0;
+        }
+
+        ctx.fillStyle = character.suit;
+        ctx.beginPath();
+        ctx.roundRect(-15, -3, 30, 30, 10);
+        ctx.fill();
+        ctx.fillStyle = character.accent;
+        ctx.beginPath();
+        ctx.roundRect(-20, 2, 7, 18, 3);
+        ctx.roundRect(13, 2, 7, 18, 3);
+        ctx.fill();
+        ctx.fillStyle = character.suit;
+        ctx.beginPath();
+        ctx.roundRect(-11, 22, 9, 9, 3);
+        ctx.roundRect(2, 22, 9, 9, 3);
+        ctx.fill();
+
+        ctx.fillStyle = character.helmet;
+        ctx.beginPath();
+        ctx.ellipse(0, -13, 19, 20, 0, Math.PI, Math.PI * 2);
+        ctx.lineTo(19, -6);
+        ctx.quadraticCurveTo(0, 4, -19, -6);
+        ctx.closePath();
+        ctx.fill();
+        const visor = ctx.createLinearGradient(-13, -23, 12, -6);
+        visor.addColorStop(0, character.accent);
+        visor.addColorStop(.3, character.visor);
+        visor.addColorStop(1, "#172b50");
+        ctx.fillStyle = visor;
+        ctx.beginPath();
+        ctx.ellipse(0, -13, 14, 11, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#b5efff";
+        ctx.globalAlpha = .7;
+        ctx.beginPath();
+        ctx.ellipse(-5, -17, 4, 1.5, -.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function update(dt) {
+        if (!gameStarted) return;
+        if (messageTimer > 0) {
+          messageTimer -= dt;
+          if (isDying) {
+            player.vy += gravity * dt;
+            player.y += player.vy * dt;
+            cameraY += (player.y - height * .52 - cameraY) * Math.min(1, dt * 3.2);
+          }
+          if (messageTimer <= 0) {
+            if (pendingLevelAdvance) {
+              if (!saveData.completedLevels.includes(currentLevel)) saveData.completedLevels.push(currentLevel);
+              saveProgress();
+              if (currentLevel + 1 < levelRoutes.length) {
+                currentLevel++;
+                resetPlayer();
+              } else {
+                currentLevel = 0;
+                gameStarted = false;
+                resetPlayer();
+                menuTitle.textContent = "Mission geschafft!";
+                menuIntro.textContent = `Du hast alle ${levelRoutes.length} Level gemeistert. Wähle dein nächstes Abenteuer.`;
+                startGameButton.textContent = "Noch einmal spielen";
+                menu.hidden = false;
+              }
+            } else if (pendingResume) {
+              pendingResume = false;
+              message.classList.remove("visible");
+            } else {
+              resetPlayer();
+            }
+          }
+          return;
+        }
+
+        const keyDirection = (keys.has("arrowright") || keys.has("d") ? 1 : 0) - (keys.has("arrowleft") || keys.has("a") ? 1 : 0);
+        const input = Math.abs(direction) > .05 ? direction : keyDirection;
+        const character = characters[selectedCharacter];
+        const previousX = player.x;
+        const wasGrounded = player.grounded;
+
+        if (caveMode) {
+          player.vx += input * 1550 * character.speed * (1 + saveData.speedLevel * .1) * dt;
+          if (input === 0) player.vx *= Math.pow(.0008, dt);
+          player.vx = Math.max(-300, Math.min(300, player.vx));
+          player.x += player.vx * dt;
+          for (const obstacle of caveObstacles) {
+            if (player.x + player.width > obstacle.x && player.x < obstacle.x + obstacle.width
+              && player.y + player.height > obstacle.y && player.y < obstacle.y + obstacle.height) {
+              player.x = player.x > previousX ? obstacle.x - player.width : obstacle.x + obstacle.width;
+              player.vx = 0;
+              break;
+            }
+          }
+          if (wasGrounded && player.platform) {
+            const stillOverPlatform = player.x + player.width > player.platform.x
+              && player.x < player.platform.x + player.platform.width;
+            if (stillOverPlatform) {
+              player.y = player.platform.y - player.height;
+              player.vy = 0;
+              player.grounded = true;
+            } else {
+              player.platform = null;
+              player.grounded = false;
+            }
+          }
+          const previousBottom = player.y + player.height;
+          player.vy += gravity * dt;
+          player.y += player.vy * dt;
+          const caveFloor = activeCave.floorY;
+          let landedOnCrate = false;
+          if (player.vy >= 0) {
+            for (const obstacle of caveObstacles) {
+              const overlapsHorizontally = player.x + player.width > obstacle.x
+                && player.x < obstacle.x + obstacle.width;
+              if (overlapsHorizontally && previousBottom <= obstacle.y + 1
+                && player.y + player.height >= obstacle.y) {
+                player.y = obstacle.y - player.height;
+                player.vy = 0;
+                player.grounded = true;
+                player.platform = obstacle;
+                player.jumpStrength = 0;
+                landedOnCrate = true;
+                break;
+              }
+            }
+          }
+          if (!landedOnCrate && player.vy >= 0 && previousBottom <= caveFloor && player.y + player.height >= caveFloor) {
+            player.y = caveFloor - player.height;
+            player.vy = 0;
+            player.grounded = true;
+            player.platform = null;
+            player.jumpStrength = 0;
+          } else if (!landedOnCrate) {
+            player.grounded = false;
+          }
+          for (const enemy of caveEnemies) {
+            enemy.x += enemy.direction * enemy.speed * dt;
+            enemy.y = activeCave.floorY - 28;
+            if (enemy.x < enemy.minX || enemy.x > enemy.maxX) {
+              enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
+              enemy.direction *= -1;
+            }
+          }
+          for (let i = caveEnemies.length - 1; i >= 0; i--) {
+            const enemy = caveEnemies[i];
+            const overlaps = player.x + player.width > enemy.x && player.x < enemy.x + 28
+              && player.y + player.height > enemy.y && player.y < enemy.y + 28;
+            if (!overlaps) continue;
+            if (player.vy > 0 && previousBottom <= enemy.y + 8 && player.jumpStrength >= .9) {
+              caveEnemies.splice(i, 1);
+              player.y = enemy.y - player.height;
+              player.vy = -420;
+              player.jumpStrength = 0;
+              saveData.money += 5;
+              saveProgress();
+              addBurst(enemy.x + 14, enemy.y + 14, "#ff8ba6", 14);
+            } else {
+              beginDeath("Ein Höhlenroboter hat dich erwischt!");
+              return;
+            }
+          }
+          for (const pickup of moonDustPickups) {
+            if (!pickup.taken && Math.hypot(player.x + player.width / 2 - pickup.x, player.y + player.height / 2 - pickup.y) < 30) {
+              pickup.taken = true;
+              saveData.money += 2;
+              saveProgress();
+              addBurst(pickup.x, pickup.y, "#c4b5ff", 10);
+            }
+          }
+          for (const tank of tanks) {
+            if (!tank.taken && tanksThisRun < 6 + saveData.tankLevel * 2
+              && Math.hypot(player.x + player.width / 2 - tank.x, player.y + player.height / 2 - tank.y) < 34) {
+              tank.taken = true;
+              tanksThisRun++;
+              updateTankHud();
+              addBurst(tank.x, tank.y, "#8df5ec", 12);
+            }
+          }
+          updateLasers(dt);
+          updateParticles(dt);
+          cameraX += (player.x - width * .36 - cameraX) * Math.min(1, dt * 4);
+          cameraY += (player.y - height * .52 - cameraY) * Math.min(1, dt * 3.2);
+          if (player.x >= activeCave.exitX) leaveCave();
+          return;
+        }
+
+        const slideRequested = slideHeld || keys.has("shift") || keys.has("arrowdown") || keys.has("s");
+        if (slideRequested && !player.sliding) {
+          const bottom = player.y + player.height;
+          player.height = 30;
+          player.y = bottom - player.height;
+          player.sliding = true;
+        } else if (!slideRequested && player.sliding) {
+          const bottom = player.y + player.height;
+          const standingY = bottom - 54;
+          const blocked = obstacles.some(obstacle => obstacle.type === "barrier"
+            && player.x + player.width > obstacle.x && player.x < obstacle.x + obstacle.width
+            && standingY < obstacle.y + obstacle.height && bottom > obstacle.y);
+          if (!blocked) {
+            player.height = 54;
+            player.y = standingY;
+            player.sliding = false;
+          }
+        }
+        slideButton.classList.toggle("active", player.sliding);
+        player.vx += input * (player.grounded ? 1550 : 930) * character.speed * (1 + saveData.speedLevel * .1) * dt;
+        if (input === 0) player.vx *= Math.pow(player.grounded ? .0008 : .22, dt);
+        const maxSpeed = 300 * character.speed * (player.sliding ? 1.12 : 1);
+        player.vx = Math.max(-maxSpeed, Math.min(maxSpeed, player.vx));
+        player.x += player.vx * dt;
+        for (const obstacle of obstacles) {
+          if (!["barrier", "crate", "wall"].includes(obstacle.type)) continue;
+          const obstacleTop = obstacle.y;
+          const obstacleBottom = obstacle.y + obstacle.height;
+          const overlapsHorizontally = player.x + player.width > obstacle.x && player.x < obstacle.x + obstacle.width;
+          const overlapsVertically = player.y + player.height > obstacleTop && player.y < obstacleBottom;
+          if (overlapsHorizontally && overlapsVertically) {
+            player.x = player.x > previousX ? obstacle.x - player.width : obstacle.x + obstacle.width;
+            player.vx = 0;
+            break;
+          }
+        }
+        player.x = Math.max(groundSegments[0].x, player.x);
+        if (gameMode === "levels") {
+          const finalSegment = groundSegments[groundSegments.length - 1];
+          player.x = Math.min(player.x, finalSegment.x + finalSegment.width - player.width);
+        }
+        if (wasGrounded) {
+          const centerX = player.x + player.width / 2;
+          if (player.platform) {
+            const stillOverPlatform = player.x + player.width > player.platform.x
+              && player.x < player.platform.x + player.platform.width;
+            if (stillOverPlatform) {
+              player.y = player.platform.y - player.height;
+              player.vy = 0;
+              player.grounded = true;
+            } else {
+              player.platform = null;
+              player.grounded = false;
+            }
+          } else {
+            const opening = caves.find(cave => centerX > cave.x && centerX < cave.x + cave.width);
+            if (opening) {
+              player.y = groundYAt(centerX) - player.height;
+              player.grounded = false;
+            } else {
+              player.y = groundYAt(centerX) - player.height;
+              player.vy = 0;
+              player.grounded = true;
+            }
+          }
+        }
+
+        const previousBottom = player.y + player.height;
+        for (const enemy of enemies) {
+          enemy.x += enemy.direction * enemy.speed * dt;
+          enemy.y = groundYAt(enemy.x) - 28;
+          if (enemy.x < enemy.minX || enemy.x > enemy.maxX) {
+            enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
+            enemy.direction *= -1;
+          }
+        }
+
+        player.vy += gravity * dt;
+        player.y += player.vy * dt;
+        player.grounded = false;
+
+        for (let i = fallingSpikes.length - 1; i >= 0; i--) {
+          const spike = fallingSpikes[i];
+          if (spike.state === "waiting"
+            && Math.abs(player.x + player.width / 2 - (spike.x + spike.width / 2)) < 245) {
+            spike.state = "warning";
+            spike.timer = .35;
+          } else if (spike.state === "warning") {
+            spike.timer -= dt;
+            if (spike.timer <= 0) spike.state = "falling";
+          } else if (spike.state === "falling") {
+            spike.y = Math.min(spike.targetY, spike.y + 560 * dt);
+            if (spike.y >= spike.targetY) {
+              spike.state = "landed";
+              spike.timer = 1.1;
+            }
+          } else if (spike.state === "landed") {
+            spike.timer -= dt;
+            if (spike.timer <= 0) fallingSpikes.splice(i, 1);
+          }
+        }
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const enemy = enemies[i];
+          const overlaps = player.x + player.width > enemy.x && player.x < enemy.x + 28
+            && player.y + player.height > enemy.y && player.y < enemy.y + 28;
+          if (!overlaps) continue;
+          const stompedFromAbove = player.vy > 0 && previousBottom <= enemy.y + 8;
+          if (stompedFromAbove && player.jumpStrength >= .9) {
+            enemies.splice(i, 1);
+            player.y = enemy.y - player.height;
+            player.vy = -420;
+            player.grounded = false;
+            player.jumpStrength = 0;
+            saveData.money += 5;
+            saveProgress();
+            addBurst(enemy.x + 14, enemy.y + 14, "#ff8ba6", 14);
+          } else {
+            beginDeath("Ein Mondroboter hat dich erwischt!");
+            return;
+          }
+        }
+
+        for (const obstacle of obstacles) {
+          if (["barrier", "crate", "wall"].includes(obstacle.type)) continue;
+          const obstacleTop = obstacle.type === "spikes" ? obstacle.y - obstacle.height : obstacle.y;
+          const obstacleBottom = obstacle.type === "spikes" ? obstacle.y : obstacle.y + obstacle.height;
+          const overlaps = player.x + player.width > obstacle.x && player.x < obstacle.x + obstacle.width
+            && player.y + player.height > obstacleTop && player.y < obstacleBottom;
+          if (overlaps) {
+            beginDeath("Vorsicht, Stacheln!");
+            return;
+          }
+        }
+
+        for (const spike of fallingSpikes) {
+          if (spike.state !== "falling" && spike.state !== "landed") continue;
+          const overlaps = player.x + player.width > spike.x && player.x < spike.x + spike.width
+            && player.y + player.height > spike.y - spike.height && player.y < spike.y;
+          if (overlaps) {
+            beginDeath("Du wurdest von fallenden Stacheln getroffen!");
+            return;
+          }
+        }
+
+        if (goal && player.x + player.width > goal.x && player.x < goal.x + goal.width
+          && player.y + player.height > goal.y && player.y < goal.y + goal.height) {
+          beginLevelAdvance();
+          return;
+        }
+
+        const centerX = player.x + player.width / 2;
+        const floorY = groundYAt(centerX);
+        const caveOpening = caves.find(cave => centerX > cave.x && centerX < cave.x + cave.width);
+        let landedOnCrate = false;
+        if (player.vy >= 0) {
+          for (const obstacle of obstacles) {
+            if (obstacle.type !== "crate") continue;
+            const overlapsHorizontally = player.x + player.width > obstacle.x
+              && player.x < obstacle.x + obstacle.width;
+            if (overlapsHorizontally && previousBottom <= obstacle.y + 1
+              && player.y + player.height >= obstacle.y) {
+              player.y = obstacle.y - player.height;
+              player.vy = 0;
+              player.grounded = true;
+              player.platform = obstacle;
+              player.jumpStrength = 0;
+              landedOnCrate = true;
+              break;
+            }
+          }
+        }
+        if (!landedOnCrate && caveOpening && player.vy >= 0 && player.y + player.height >= floorY) {
+          enterCave(caveOpening);
+        } else if (!landedOnCrate && player.vy >= 0 && player.y + player.height >= floorY) {
+          player.y = floorY - player.height;
+          player.vy = 0;
+          player.grounded = true;
+          player.platform = null;
+          player.jumpStrength = 0;
+        }
+
+        for (const tank of tanks) {
+          if (!tank.taken && tanksThisRun < 6 + saveData.tankLevel * 2
+            && Math.hypot(centerX - tank.x, player.y + player.height / 2 - tank.y) < 34) {
+            tank.taken = true;
+            tanksThisRun++;
+            updateTankHud();
+            addBurst(tank.x, tank.y, "#8df5ec", 12);
+          }
+        }
+
+        updateLasers(dt);
+        updateParticles(dt);
+
+        cameraX += (player.x - width * .36 - cameraX) * Math.min(1, dt * 4);
+        cameraY += (player.y - height * .52 - cameraY) * Math.min(1, dt * 3.2);
+        ensureGroundSegments();
+        if (gameMode === "endless") {
+          const section = Math.floor(Math.max(0, player.x) / 1800) + 1;
+          stageLabel.textContent = `ENDLOSMODUS · ABSCHNITT ${section}`;
+          pruneEndlessCourse();
+        }
+
+        if (player.y > floorY + 100) {
+          player.y = floorY - player.height;
+          player.vy = 0;
+          player.grounded = true;
+        }
+      }
+
+      function updateLasers(dt) {
+        for (let i = lasers.length - 1; i >= 0; i--) {
+          lasers[i].life -= dt;
+          if (lasers[i].life <= 0) lasers.splice(i, 1);
+        }
+      }
+
+      function updateParticles(dt) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const particle = particles[i];
+          particle.life -= dt;
+          particle.x += particle.vx * dt;
+          particle.y += particle.vy * dt;
+          particle.vy += 360 * dt;
+          if (particle.life <= 0) particles.splice(i, 1);
+        }
+      }
+
+      function pruneEndlessCourse() {
+        const cutoff = cameraX - width * 1.5;
+        while (groundSegments.length > 1 && groundSegments[0].x + groundSegments[0].width < cutoff) groundSegments.shift();
+        for (const collection of [enemies, obstacles, fallingSpikes, caves, tanks]) {
+          for (let i = collection.length - 1; i >= 0; i--) {
+            const item = collection[i];
+            const itemWidth = item.width || 28;
+            if (item.x + itemWidth < cutoff) collection.splice(i, 1);
+          }
+        }
+      }
+
+      function beginLevelAdvance() {
+        message.innerHTML = `Ziel erreicht!<br>${levelRoutes[currentLevel].name} geschafft!`;
+        message.classList.add("visible");
+        messageTimer = 1.8;
+        pendingLevelAdvance = true;
+        isDying = false;
+        player.vx = 0;
+        player.vy = 0;
+      }
+
+      function beginDeath(reason) {
+        if (messageTimer > 0) return;
+        message.innerHTML = `${reason}<br>Neuer Versuch in Kürze …`;
+        message.classList.add("visible");
+        messageTimer = 1.5;
+        player.vx = 0;
+        if (player.grounded) player.vy = -180;
+        isDying = true;
+        pendingLevelAdvance = false;
+        pendingResume = false;
+      }
+
+      function render(time) {
+        if (caveMode) {
+          drawCaveScene(time);
+          drawPlayer(time);
+          return;
+        }
+        drawBackground(time);
+        drawGround();
+        for (const cave of caves) drawCaveMarker(cave);
+        for (const obstacle of obstacles) {
+          if (obstacle.type === "spikes") drawSpikes(obstacle);
+          else if (obstacle.type === "barrier") drawBarrier(obstacle);
+          else if (obstacle.type === "crate") drawCrate(obstacle);
+          else if (obstacle.type === "wall") drawWall(obstacle);
+          else drawHill(obstacle);
+        }
+        for (const spike of fallingSpikes) drawFallingSpikes(spike);
+        for (const enemy of enemies) drawEnemy(enemy, time);
+        drawGoal(time);
+        for (const tank of tanks) drawTank(tank, time);
+        for (const laser of lasers) drawLaser(laser);
+        for (const particle of particles) {
+          ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
+          ctx.fillStyle = particle.color;
+          ctx.beginPath();
+          ctx.arc(particle.x - cameraX, particle.y - cameraY, particle.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        drawPlayer(time);
+      }
+
+      function frame(time) {
+        const dt = Math.min((time - lastTime) / 1000 || 0, .033);
+        lastTime = time;
+        update(dt);
+        render(time);
+        requestAnimationFrame(frame);
+      }
+
+      resize();
+      resetPlayer();
+      refreshShop();
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
