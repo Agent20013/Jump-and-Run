@@ -638,20 +638,24 @@
         comet: { speed: 1.05, jump: 1.15, suit: "#d8ffb8", helmet: "#edffd9", accent: "#a9f76f", visor: "#31512a", cost: 100 }
       };
       const levelRoutes = [
-        { name: "Kraterfeld", steps: [[0, -35, 190, "spikes"], [58, 40, 180, "plain"], [0, -55, 190, "enemy"], [58, 35, 185, "plain"], [0, -20, 190, "barrier"], [0, 0, 200, "goal"]] },
-        { name: "Staubklippen", steps: [[0, -30, 180, "enemy"], [58, 35, 175, "plain"], [0, -25, 190, "spikes"], [58, 45, 180, "plain"], [0, -40, 175, "barrier"], [0, 20, 180, "spikes"], [58, -5, 200, "goal"]] },
-        { name: "Mondruinen", steps: [[0, 35, 180, "spikes"], [58, -45, 170, "plain"], [0, 35, 180, "enemy"], [58, -60, 180, "plain"], [0, 45, 180, "barrier"], [0, -30, 175, "enemy"], [58, 40, 180, "spikes"], [0, -20, 200, "goal"]] },
-        { name: "Kristallhöhlen", steps: [[0, -25, 190, "enemy"], [58, 35, 180, "plain"], [0, -35, 185, "spikes"], [58, 40, 180, "plain"], [0, -20, 190, "barrier"], [58, 25, 180, "enemy"], [0, -10, 200, "goal"]] },
-        { name: "Eisiger Mond", steps: [[0, 25, 180, "spikes"], [58, -35, 175, "plain"], [0, 20, 190, "enemy"], [58, -45, 180, "plain"], [0, 35, 175, "barrier"], [58, -25, 185, "spikes"], [0, 15, 200, "goal"]] },
-        { name: "Sternenwrack", steps: [[0, -40, 185, "enemy"], [58, 35, 175, "spikes"], [0, -20, 180, "plain"], [58, 40, 185, "barrier"], [0, -30, 175, "enemy"], [58, 25, 180, "spikes"], [0, 0, 200, "goal"]] },
-        { name: "Basaltbogen", steps: [[58, 0, 180, "enemy"], [0, 24, 180, "crate"], [0, -24, 190, "wall"], [58, 0, 180, "plain"], [0, 0, 180, "enemy"], [0, 0, 200, "goal"]] },
-        { name: "Schattenschacht", steps: [[0, 0, 180, "crate"], [58, 0, 190, "spikes"], [0, 0, 180, "enemy"], [0, 0, 190, "wall"], [58, 0, 180, "crate"], [0, 0, 200, "goal"]] },
-        { name: "Mondmeer", steps: [[0, 0, 185, "enemy"], [58, 25, 180, "wall"], [0, -25, 180, "crate"], [0, 0, 190, "spikes"], [58, 0, 180, "enemy"], [0, 0, 200, "goal"]] },
-        { name: "Lichtlose Tiefe", steps: [[58, 0, 190, "crate"], [0, 0, 180, "enemy"], [0, 0, 190, "wall"], [58, 0, 180, "spikes"], [0, 0, 190, "crate"], [0, 0, 200, "goal"]] },
-        { name: "Aschewüste", steps: [[0, -25, 190, "enemy"], [58, 20, 180, "plain"], [0, -35, 185, "wall"], [58, 30, 180, "plain"], [0, -15, 190, "spikes"], [0, 0, 200, "goal"]] },
-        { name: "Glaskrater", steps: [[58, 25, 180, "spikes"], [0, -20, 190, "plain"], [58, 35, 180, "enemy"], [0, -40, 185, "crate"], [58, 25, 180, "plain"], [0, 0, 200, "goal"]] },
-        { name: "Verlorene Station", steps: [[0, 35, 185, "wall"], [58, -30, 180, "plain"], [0, 20, 190, "enemy"], [58, -35, 180, "barrier"], [0, 15, 185, "spikes"], [0, 0, 200, "goal"]] },
-        { name: "Polarlicht", steps: [[58, -35, 180, "enemy"], [0, 20, 190, "plain"], [58, -25, 180, "spikes"], [0, 35, 185, "wall"], [58, -20, 180, "enemy"], [0, 0, 200, "goal"]] }
+        { name: "Kraterfeld", steps: [[0, -12, 210, "spikes"], [100, 8, 205, "plain"], [0, 16, 215, "enemy"], [0, -8, 210, "crate"], [100, 12, 205, "barrier"], [0, 0, 220, "goal"]] },
+        { name: "Staubklippen", steps: [[100, -18, 190, "enemy"], [0, 12, 215, "plain"], [0, 18, 205, "spikes"], [100, -12, 210, "crate"], [0, 10, 215, "barrier"], [0, 0, 220, "goal"]] },
+        { name: "Mondruinen", steps: [[0, 16, 205, "crate"], [100, -12, 200, "plain"], [0, -18, 215, "enemy"], [0, 12, 210, "wall"], [100, -8, 205, "spikes"], [0, 0, 220, "goal"]] },
+        { name: "Kristallhöhlen", steps: [[100, 10, 205, "enemy"], [0, -14, 215, "plain"], [100, 16, 205, "spikes"], [0, -10, 210, "crate"], [0, 12, 215, "barrier"], [100, 0, 220, "goal"]] },
+        { name: "Eisiger Mond", steps: [[0, -16, 210, "spikes"], [100, 12, 205, "enemy"], [0, 14, 215, "plain"], [100, -10, 210, "wall"], [0, 8, 205, "crate"], [0, 0, 220, "goal"]] },
+        { name: "Sternenwrack", steps: [[100, 14, 200, "crate"], [0, -10, 210, "enemy"], [100, 12, 205, "spikes"], [0, -16, 215, "plain"], [100, 8, 205, "barrier"], [0, 0, 220, "goal"]] },
+        { name: "Basaltbogen", steps: [[0, 12, 205, "enemy"], [100, -8, 210, "wall"], [0, 16, 215, "plain"], [0, -12, 205, "spikes"], [100, 10, 210, "crate"], [0, 0, 220, "goal"]] },
+        { name: "Schattenschacht", steps: [[100, -12, 200, "crate"], [0, 8, 210, "spikes"], [100, 14, 205, "enemy"], [0, -10, 215, "plain"], [0, 12, 210, "wall"], [100, 0, 220, "goal"]] },
+        { name: "Mondmeer", steps: [[0, -10, 215, "enemy"], [0, 12, 205, "plain"], [100, -14, 210, "wall"], [0, 16, 205, "crate"], [100, -8, 215, "spikes"], [0, 0, 220, "goal"]] },
+        { name: "Lichtlose Tiefe", steps: [[100, 16, 200, "spikes"], [100, -12, 210, "enemy"], [0, 10, 215, "crate"], [100, -16, 205, "plain"], [0, 12, 215, "barrier"], [0, 0, 220, "goal"]] },
+        { name: "Aschewüste", steps: [[0, 14, 210, "enemy"], [100, -10, 205, "plain"], [0, 12, 215, "wall"], [100, -14, 210, "spikes"], [0, 8, 205, "crate"], [0, 0, 220, "goal"]] },
+        { name: "Glaskrater", steps: [[100, -14, 205, "spikes"], [0, 10, 215, "crate"], [100, 16, 205, "enemy"], [0, -12, 210, "plain"], [100, 8, 215, "barrier"], [0, 0, 220, "goal"]] },
+        { name: "Verlorene Station", steps: [[0, -12, 205, "wall"], [100, 14, 210, "enemy"], [0, -10, 215, "plain"], [100, 12, 205, "barrier"], [0, -16, 210, "spikes"], [0, 0, 220, "goal"]] },
+        { name: "Polarlicht", steps: [[100, 12, 205, "enemy"], [100, -10, 210, "spikes"], [0, 14, 215, "plain"], [100, -16, 205, "wall"], [0, 8, 215, "crate"], [0, 0, 220, "goal"]] },
+        { name: "Vulkanpfad", steps: [[0, 14, 200, "spikes"], [100, -10, 210, "enemy"], [0, -16, 215, "crate"], [100, 12, 205, "barrier"], [100, 8, 215, "plain"], [0, 0, 220, "goal"]] },
+        { name: "Echoschlucht", steps: [[100, -14, 205, "enemy"], [0, 12, 215, "wall"], [100, 10, 205, "plain"], [0, -16, 210, "spikes"], [100, 14, 210, "crate"], [0, 0, 220, "goal"]] },
+        { name: "Silberplateau", steps: [[0, -10, 215, "crate"], [0, 8, 210, "enemy"], [100, 14, 205, "spikes"], [0, -12, 215, "plain"], [100, 10, 205, "barrier"], [0, 0, 220, "goal"]] },
+        { name: "Letzter Horizont", steps: [[100, 12, 205, "wall"], [0, -14, 215, "enemy"], [100, 16, 205, "spikes"], [100, -10, 210, "crate"], [0, 8, 215, "barrier"], [0, 0, 230, "goal"]] }
       ];
       let width = 0;
       let height = 0;
@@ -758,11 +762,11 @@
       const spawnClearance = 28;
 
       function hasSpawnClearance(x, width) {
-        const overlaps = item => x < item.x + item.width + spawnClearance
-          && x + width + spawnClearance > item.x;
-        if ([...obstacles, ...fallingSpikes].some(overlaps)) return false;
-        return !tanks.some(tank => x < tank.x + 12 + spawnClearance
-          && x + width + spawnClearance > tank.x - 12);
+        const overlaps = (item, itemX = item.x, itemWidth = item.width || 28) => x < itemX + itemWidth + spawnClearance
+          && x + width + spawnClearance > itemX;
+        if ([...obstacles, ...fallingSpikes].some(item => overlaps(item))) return false;
+        if (tanks.some(tank => overlaps(tank, tank.x - 12, 24))) return false;
+        return !enemies.some(enemy => overlaps(enemy, enemy.minX, enemy.maxX - enemy.minX + 28));
       }
 
       function addTank(segment, position = .5) {
@@ -1079,32 +1083,41 @@
         activeCave.floorY = activeCave.surfaceY + 150;
         activeCave.exitX = cave.x + 460;
         activeCave.groundSegments = [];
-        const caveHeights = [0, -18, 12, -22, 16, -8];
-        for (let i = 0; i < caveHeights.length; i++) {
+        let caveHeight = 0;
+        for (let i = 0; i < 6; i++) {
+          if (i > 0) caveHeight = Math.max(-36, Math.min(36, caveHeight + (Math.floor(Math.random() * 5) - 2) * 10));
           const x = cave.x + i * 92;
           activeCave.groundSegments.push({
             x,
-            y: activeCave.floorY + caveHeights[i],
+            y: activeCave.floorY + caveHeight,
             width: 92
           });
         }
         caveEnemies.length = 0;
         caveObstacles.length = 0;
         moonDustPickups.length = 0;
-        for (let i = 0; i < 2; i++) {
-          const x = cave.x + 92 + i * 190;
+        for (const segmentIndex of [1, 3]) {
+          const segment = activeCave.groundSegments[segmentIndex];
+          const x = segment.x + segment.width / 2;
           const floorY = caveGroundYAt(x);
-          caveEnemies.push({ x, y: floorY - 28, minX: x - 22, maxX: x + 22, direction: i % 2 ? -1 : 1, speed: 50 + i * 8, phase: i });
-          moonDustPickups.push({ x: x + 12, y: floorY - 70, taken: false });
-          const crateX = cave.x + 183 + i * 190;
+          caveEnemies.push({ x, y: floorY - 28, minX: x - 18, maxX: x + 18, direction: segmentIndex % 2 ? -1 : 1, speed: 50 + segmentIndex * 8, phase: segmentIndex });
+        }
+        for (const segmentIndex of [2, 4]) {
+          const segment = activeCave.groundSegments[segmentIndex];
+          const crateWidth = segmentIndex === 2 ? 34 : 24;
+          const crateHeight = segmentIndex === 2 ? 34 : 54;
+          const crateX = segment.x + (segment.width - crateWidth) / 2;
           caveObstacles.push({
             x: crateX,
-            y: caveGroundYAt(crateX + 17) - 34,
-            width: 34,
-            height: 34,
-            type: "crate"
+            y: caveGroundYAt(crateX + crateWidth / 2) - crateHeight,
+            width: crateWidth,
+            height: crateHeight,
+            type: segmentIndex === 2 ? "crate" : "wall"
           });
         }
+        const pickupSegment = activeCave.groundSegments[0];
+        const pickupX = pickupSegment.x + pickupSegment.width / 2;
+        moonDustPickups.push({ x: pickupX, y: caveGroundYAt(pickupX) - 72, taken: false });
         player.sliding = false;
         slideHeld = false;
         slideButton.classList.remove("active");
@@ -1174,25 +1187,30 @@
         while (groundSegments[groundSegments.length - 1].x < furthest) {
           const index = nextGroundIndex++;
           const previous = groundSegments[groundSegments.length - 1];
-          const gap = index >= 4 && index % 4 === 1 ? 100 : 0;
+          const gap = index >= 5 && index % 8 === 5 ? 100 : 0;
           const x = previous.x + previous.width + gap;
           if (gap) addCave(previous.x + previous.width, gap);
-          const terrainPattern = [0, 0, 0, 22, 0, 0, -20, 0, 0, 0, 38, 0];
-          const segment = { x, y: groundLevel() + terrainPattern[index % terrainPattern.length], width: 174 + (index % 2) * 26, index };
+          const terrainPattern = [0, 0, 0, 0, 12, 0, 0, 0, -12, 0, 0, 0];
+          const segment = {
+            x,
+            y: Math.max(groundLevel() - 42, Math.min(groundLevel() + 42, previous.y + terrainPattern[index % terrainPattern.length])),
+            width: 260 + (index % 3) * 35,
+            index
+          };
           groundSegments.push(segment);
-          if (index % 2 === 1) addTank(segment, .5);
-          if (index >= 2 && index % 3 === 2) {
+          if (index % 3 !== 0) addTank(segment, .5);
+          if (index >= 2 && index % 5 === 2) {
             addEnemy(segment, index);
           }
-          if (index >= 3 && index % 4 === 0) {
+          if (index >= 3 && index % 7 === 0) {
             addSpikes(segment, .58);
           }
-          if (index >= 6 && index % 6 === 3) {
+          if (index >= 6 && index % 9 === 3) {
             addBarrier(segment, .62);
           }
-          if (index >= 3 && index % 5 === 2) addCrate(segment, .42);
-          if (index >= 5 && index % 7 === 4) addWall(segment, .72);
-          if (index >= 4 && index % 5 === 1) {
+          if (index >= 3 && index % 8 === 2) addCrate(segment, .42);
+          if (index >= 5 && index % 11 === 4) addWall(segment, .72);
+          if (index >= 4 && index % 10 === 1) {
             addFallingSpikes(segment, .74);
           }
         }
@@ -1200,16 +1218,24 @@
       }
 
       function addEnemy(segment, index) {
-        const minX = segment.x + 15;
-        enemies.push({
-          x: minX,
-          y: segment.y - 28,
-          minX,
-          maxX: segment.x + segment.width - 43,
-          direction: 1,
-          speed: 68 + index % 3 * 10,
-          phase: index
-        });
+        const patrolWidth = 36;
+        const enemyWidth = 28;
+        for (const position of [.25, .5, .75]) {
+          const x = segment.x + segment.width * position - enemyWidth / 2;
+          const minX = x - patrolWidth / 2;
+          const maxX = x + patrolWidth / 2;
+          if (!hasSpawnClearance(minX, maxX - minX + enemyWidth)) continue;
+          enemies.push({
+            x,
+            y: groundYAt(x) - 28,
+            minX,
+            maxX,
+            direction: 1,
+            speed: 68 + index % 3 * 10,
+            phase: index
+          });
+          return;
+        }
       }
 
       function addSpikes(segment, position = .58) {
@@ -1269,10 +1295,9 @@
             const gapStart = previous.x + previous.width;
             const gapWidth = requestedGap ? Math.max(requestedGap, 100) : 0;
             if (gapWidth) addCave(gapStart, gapWidth);
-            const terrainOffset = heightChange ? Math.sign(heightChange) * 18 : 0;
             const segment = {
               x: gapStart + gapWidth,
-              y: Math.max(groundLevel() - 115, Math.min(groundLevel() + 115, previous.y + terrainOffset)),
+              y: Math.max(groundLevel() - 90, Math.min(groundLevel() + 90, previous.y + heightChange)),
               width: segmentWidth,
               index: stepIndex + 1
             };
@@ -1428,8 +1453,15 @@
         button.addEventListener("lostpointercapture", release);
       }
 
-      jumpButton.addEventListener("click", () => jump());
-      boostButton.addEventListener("click", () => jump(true));
+      for (const [button, action] of [[jumpButton, () => jump()], [boostButton, () => jump(true)]]) {
+        button.addEventListener("pointerdown", event => {
+          event.preventDefault();
+          action();
+        });
+        button.addEventListener("click", event => {
+          if (event.detail === 0) action();
+        });
+      }
       laserButton.addEventListener("click", fireLaser);
 
       slideButton.addEventListener("pointerdown", event => {
