@@ -749,9 +749,7 @@
 
       function addCave(gapStart, gapWidth) {
         if (gapWidth < 45) return;
-        const caveWidth = Math.min(88, gapWidth - 10);
-        const x = gapStart + (gapWidth - caveWidth) / 2;
-        caves.push({ x, width: caveWidth, gapStart, gapEnd: gapStart + gapWidth, exitX: gapStart + gapWidth, floorSegments: null });
+        caves.push({ x: gapStart, width: gapWidth, gapStart, gapEnd: gapStart + gapWidth, exitX: gapStart + gapWidth, floorSegments: null });
       }
 
       const spawnClearance = 28;
@@ -1077,7 +1075,7 @@
         cave.floorSegments = [];
         let floorY = floorBaseY;
         for (let x = cave.gapStart, index = 0; x < cave.gapEnd; x += 92, index++) {
-          const heightPattern = [0, 12, 0, -12, 0, 18, 0, -18];
+          const heightPattern = [54, 0, -54, 54, -54, 0];
           if (index > 0) {
             floorY = Math.max(entrySurfaceY + 110, Math.min(exitSurfaceY + 180, floorY + heightPattern[index % heightPattern.length]));
           }
@@ -1171,10 +1169,10 @@
           const gap = index >= 5 && index % 8 === 5 ? 100 : 0;
           const x = previous.x + previous.width + gap;
           if (gap) addCave(previous.x + previous.width, gap);
-          const terrainPattern = [0, 0, 0, 0, 12, 0, 0, 0, -12, 0, 0, 0];
+          const terrainPattern = [54, 0, -54, 54, 0, -54];
           const segment = {
             x,
-            y: Math.max(groundLevel() - 42, Math.min(groundLevel() + 42, previous.y + terrainPattern[index % terrainPattern.length])),
+            y: Math.max(groundLevel() - 162, Math.min(groundLevel() + 162, previous.y + (terrainPattern[index % terrainPattern.length] || (index % 2 ? 54 : -54)))),
             width: 260 + (index % 3) * 35,
             index
           };
@@ -1280,9 +1278,13 @@
             const gapStart = previous.x + previous.width;
             const gapWidth = requestedGap ? Math.max(requestedGap, 100) : 0;
             if (gapWidth) addCave(gapStart, gapWidth);
+            let stepDirection;
+            if (heightChange > 0) stepDirection = -54;
+            else if (heightChange < 0) stepDirection = 54;
+            else stepDirection = stepIndex % 2 === 0 ? -54 : 54;
             const segment = {
               x: gapStart + gapWidth,
-              y: Math.max(groundLevel() - 90, Math.min(groundLevel() + 90, previous.y + heightChange)),
+              y: Math.max(groundLevel() - 162, Math.min(groundLevel() + 162, previous.y + (heightChange === 0 ? 0 : stepDirection))),
               width: segmentWidth,
               index: stepIndex + 1
             };
@@ -1645,43 +1647,31 @@
       function drawGround() {
         const startX = cameraX - 40;
         const endX = cameraX + width + 40;
-        const visibleCaves = caves.filter(cave => cave.x + cave.width > startX && cave.x < endX);
-        const points = [{ x: startX, y: groundYAt(startX) }];
+        const visibleCaves = caves.filter(cave => cave.gapStart + cave.width > startX && cave.gapStart < endX);
         for (const segment of groundSegments) {
           if (segment.x + segment.width < startX || segment.x > endX) continue;
-          const previousPoint = points[points.length - 1];
-          if (previousPoint && segment.x > previousPoint.x) {
-            points.push({ x: previousPoint.x, y: segment.y });
-          }
-          points.push({ x: segment.x, y: segment.y });
-          points.push({ x: segment.x + segment.width, y: segment.y });
-        }
-        points.push({ x: endX, y: groundYAt(endX) });
+          const screenX = segment.x - cameraX;
+          const screenY = segment.y - cameraY;
+          const ground = ctx.createLinearGradient(0, screenY, 0, height);
+          ground.addColorStop(0, "#777d83");
+          ground.addColorStop(.55, "#51565e");
+          ground.addColorStop(1, "#292e3a");
+          ctx.beginPath();
+          ctx.moveTo(screenX, screenY);
+          ctx.lineTo(screenX + segment.width, screenY);
+          ctx.lineTo(screenX + segment.width, height + 120);
+          ctx.lineTo(screenX, height + 120);
+          ctx.closePath();
+          ctx.fillStyle = ground;
+          ctx.fill();
 
-        const ground = ctx.createLinearGradient(0, 0, 0, height);
-        ground.addColorStop(0, "#a9adb0");
-        ground.addColorStop(.18, "#777d83");
-        ground.addColorStop(.55, "#51565e");
-        ground.addColorStop(1, "#292e3a");
-        ctx.beginPath();
-        ctx.moveTo(points[0].x - cameraX, points[0].y - cameraY);
-        for (let i = 1; i < points.length; i++) {
-          ctx.lineTo(points[i].x - cameraX, points[i].y - cameraY);
+          ctx.beginPath();
+          ctx.moveTo(screenX, screenY);
+          ctx.lineTo(screenX + segment.width, screenY);
+          ctx.strokeStyle = "#d9dcda";
+          ctx.lineWidth = 3;
+          ctx.stroke();
         }
-        ctx.lineTo(endX - cameraX, height + 120);
-        ctx.lineTo(startX - cameraX, height + 120);
-        ctx.closePath();
-        ctx.fillStyle = ground;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(points[0].x - cameraX, points[0].y - cameraY);
-        for (let i = 1; i < points.length; i++) {
-          ctx.lineTo(points[i].x - cameraX, points[i].y - cameraY);
-        }
-        ctx.strokeStyle = "#d9dcda";
-        ctx.lineWidth = 3;
-        ctx.stroke();
 
         ctx.fillStyle = "#454a51";
         const firstCrater = Math.ceil(startX / 108) * 108;
@@ -1707,10 +1697,16 @@
         if (x + caveWidth < -40 || x > width + 40 || y < -90 || y > height + 40) return;
         ctx.save();
         ctx.fillStyle = "#050710";
-        ctx.fillRect(x, y - 1, caveWidth, 166);
-        ctx.fillStyle = "#a9adb0";
-        ctx.fillRect(x - 3, y - 3, 3, 8);
-        ctx.fillRect(x + caveWidth, y - 3, 3, 8);
+        ctx.fillRect(x, y - 1, caveWidth, height - y + 120);
+        if (!cave.floorSegments) prepareCave(cave);
+        for (const segment of cave.floorSegments) {
+          const floorScreenY = segment.y - cameraY;
+          const segmentScreenX = segment.x - cameraX;
+          ctx.fillStyle = "#3f4653";
+          ctx.fillRect(segmentScreenX, floorScreenY, segment.width, height - floorScreenY + 120);
+          ctx.fillStyle = "#c7cbc9";
+          ctx.fillRect(segmentScreenX, floorScreenY, segment.width, 3);
+        }
         ctx.strokeStyle = "#3e4555";
         ctx.lineWidth = 3;
         ctx.beginPath();
@@ -2348,11 +2344,6 @@
           pruneEndlessCourse();
         }
 
-        if (player.y > floorY + 100) {
-          player.y = floorY - player.height;
-          player.vy = 0;
-          player.grounded = true;
-        }
       }
 
       function updateLasers(dt) {
