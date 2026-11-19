@@ -690,8 +690,6 @@
       } catch {
         saveData = normalizeSaveData(null);
       }
-      let caveMode = false;
-      let activeCave = null;
       let lastTime = 0;
       let messageTimer = 0;
       let selectedCharacter = "astro";
@@ -722,19 +720,16 @@
 
       function groundYAt(x) {
         if (groundSegments.length === 0) return groundLevel();
-        const first = groundSegments[0];
-        const firstCenter = first.x + first.width / 2;
-        if (x <= firstCenter) return first.y;
+        for (const segment of groundSegments) {
+          if (x >= segment.x && x <= segment.x + segment.width) return segment.y;
+        }
         for (let i = 1; i < groundSegments.length; i++) {
-          const previous = groundSegments[i - 1];
-          const current = groundSegments[i];
-          const previousCenter = previous.x + previous.width / 2;
-          const currentCenter = current.x + current.width / 2;
-          if (x <= currentCenter) {
-            const progress = (x - previousCenter) / (currentCenter - previousCenter);
-            return previous.y + (current.y - previous.y) * progress;
+          if (x > groundSegments[i - 1].x + groundSegments[i - 1].width
+            && x < groundSegments[i].x) {
+            return groundSegments[i - 1].y;
           }
         }
+        if (x < groundSegments[0].x) return groundSegments[0].y;
         return groundSegments[groundSegments.length - 1].y;
       }
 
@@ -756,7 +751,7 @@
         if (gapWidth < 45) return;
         const caveWidth = Math.min(88, gapWidth - 10);
         const x = gapStart + (gapWidth - caveWidth) / 2;
-        caves.push({ x, width: caveWidth, exitX: x + 460 });
+        caves.push({ x, width: caveWidth, gapStart, gapEnd: gapStart + gapWidth, exitX: gapStart + gapWidth, floorSegments: null });
       }
 
       const spawnClearance = 28;
@@ -1074,96 +1069,82 @@
         });
       }
 
-      function enterCave(cave) {
-        caveMode = true;
-        activeCave = cave;
-        player.height = 54;
-        player.platform = null;
-        activeCave.surfaceY = groundYAt(cave.x + cave.width / 2);
-        activeCave.floorY = activeCave.surfaceY + 150;
-        activeCave.exitX = cave.x + 460;
-        activeCave.groundSegments = [];
-        let caveHeight = 0;
-        for (let i = 0; i < 6; i++) {
-          if (i > 0) caveHeight = Math.max(-36, Math.min(36, caveHeight + (Math.floor(Math.random() * 5) - 2) * 10));
-          const x = cave.x + i * 92;
-          activeCave.groundSegments.push({
+      function prepareCave(cave) {
+        if (cave.floorSegments) return;
+        const entrySurfaceY = groundYAt(cave.gapStart);
+        const exitSurfaceY = groundYAt(cave.gapEnd);
+        const floorBaseY = entrySurfaceY + 150;
+        cave.floorSegments = [];
+        let floorY = floorBaseY;
+        for (let x = cave.gapStart, index = 0; x < cave.gapEnd; x += 92, index++) {
+          const heightPattern = [0, 12, 0, -12, 0, 18, 0, -18];
+          if (index > 0) {
+            floorY = Math.max(entrySurfaceY + 110, Math.min(exitSurfaceY + 180, floorY + heightPattern[index % heightPattern.length]));
+          }
+          cave.floorSegments.push({
             x,
-            y: activeCave.floorY + caveHeight,
-            width: 92
+            y: floorY,
+            width: Math.min(92, cave.gapEnd - x)
           });
         }
-        caveEnemies.length = 0;
-        caveObstacles.length = 0;
-        moonDustPickups.length = 0;
-        for (const segmentIndex of [1, 3]) {
-          const segment = activeCave.groundSegments[segmentIndex];
-          const x = segment.x + segment.width / 2;
-          const floorY = caveGroundYAt(x);
-          caveEnemies.push({ x, y: floorY - 28, minX: x - 18, maxX: x + 18, direction: segmentIndex % 2 ? -1 : 1, speed: 50 + segmentIndex * 8, phase: segmentIndex });
+        if (cave.floorSegments.length) {
+          const last = cave.floorSegments[cave.floorSegments.length - 1];
+          last.y = Math.max(entrySurfaceY + 110, Math.min(exitSurfaceY + 150, floorY));
         }
-        for (const segmentIndex of [2, 4]) {
-          const segment = activeCave.groundSegments[segmentIndex];
-          const crateWidth = segmentIndex === 2 ? 34 : 24;
-          const crateHeight = segmentIndex === 2 ? 34 : 54;
-          const crateX = segment.x + (segment.width - crateWidth) / 2;
-          caveObstacles.push({
-            x: crateX,
-            y: caveGroundYAt(crateX + crateWidth / 2) - crateHeight,
-            width: crateWidth,
-            height: crateHeight,
-            type: segmentIndex === 2 ? "crate" : "wall"
-          });
-        }
-        const pickupSegment = activeCave.groundSegments[0];
-        const pickupX = pickupSegment.x + pickupSegment.width / 2;
-        moonDustPickups.push({ x: pickupX, y: caveGroundYAt(pickupX) - 72, taken: false });
-        player.sliding = false;
-        slideHeld = false;
-        slideButton.classList.remove("active");
-        stageLabel.textContent = "HÖHLENWEG · TANKS UND MONDSTAUB";
-      }
-
-      function caveGroundYAt(x) {
-        if (!activeCave || !activeCave.groundSegments?.length) return activeCave?.floorY ?? groundLevel();
-        const segments = activeCave.groundSegments;
-        const firstCenter = segments[0].x + segments[0].width / 2;
-        if (x <= firstCenter) return segments[0].y;
-        for (let i = 1; i < segments.length; i++) {
-          const previous = segments[i - 1];
-          const current = segments[i];
-          const previousCenter = previous.x + previous.width / 2;
-          const currentCenter = current.x + current.width / 2;
-          if (x <= currentCenter) {
-            const progress = (x - previousCenter) / (currentCenter - previousCenter);
-            return previous.y + (current.y - previous.y) * progress;
+        cave.surfaceY = entrySurfaceY;
+        cave.floorY = floorBaseY;
+        cave.exitX = cave.gapEnd;
+        const previousEnemyCount = caveEnemies.filter(enemy => enemy.cave === cave).length;
+        if (previousEnemyCount === 0) {
+          for (const segmentIndex of [1, 3].filter(index => index < cave.floorSegments.length)) {
+            const segment = cave.floorSegments[segmentIndex];
+            const x = segment.x + segment.width / 2;
+            caveEnemies.push({
+              cave,
+              x,
+              y: caveGroundYAt(x) - 28,
+              minX: x - 18,
+              maxX: x + 18,
+              direction: segmentIndex % 2 ? -1 : 1,
+              speed: 50 + segmentIndex * 8,
+              phase: segmentIndex
+            });
+          }
+          for (const segmentIndex of [2, 4].filter(index => index < cave.floorSegments.length)) {
+            const segment = cave.floorSegments[segmentIndex];
+            const crateWidth = segmentIndex === 2 ? 34 : 24;
+            const crateHeight = segmentIndex === 2 ? 34 : 54;
+            const crateX = segment.x + (segment.width - crateWidth) / 2;
+            caveObstacles.push({
+              cave,
+              x: crateX,
+              y: caveGroundYAt(crateX + crateWidth / 2) - crateHeight,
+              width: crateWidth,
+              height: crateHeight,
+              type: segmentIndex === 2 ? "crate" : "wall"
+            });
+          }
+          const pickupSegment = cave.floorSegments[0];
+          if (pickupSegment) {
+            moonDustPickups.push({
+              cave,
+              x: pickupSegment.x + pickupSegment.width / 2,
+              y: caveGroundYAt(pickupSegment.x + pickupSegment.width / 2) - 72,
+              taken: false
+            });
           }
         }
-        return segments[segments.length - 1].y;
       }
-
-      function leaveCave() {
-        caveMode = false;
-        player.x = activeCave.exitX;
-        player.height = 54;
-        player.y = groundYAt(player.x + player.width / 2) - player.height;
-        player.vx = 0;
-        player.vy = 0;
-        player.grounded = true;
-        player.platform = null;
-        activeCave = null;
-        const caveDust = 20;
-        saveData.money += caveDust;
-        saveProgress();
-        stageLabel.textContent = gameMode === "levels"
-          ? `LEVEL ${currentLevel + 1} · ${levelRoutes[currentLevel].name}`
-          : `ENDLOSMODUS · ABSCHNITT ${Math.floor(Math.max(0, player.x) / 1800) + 1}`;
-        message.innerHTML = `Höhle geschafft!<br>+${caveDust} Mondstaub`;
-        message.classList.add("visible");
-        messageTimer = 1.3;
-        isDying = false;
-        pendingLevelAdvance = false;
-        pendingResume = true;
+      function caveGroundYAt(x) {
+        for (const cave of caves) {
+          if (x < cave.gapStart || x > cave.gapEnd) continue;
+          if (!cave.floorSegments) prepareCave(cave);
+          for (const segment of cave.floorSegments) {
+            if (x >= segment.x && x <= segment.x + segment.width) return segment.y;
+          }
+          return cave.floorY ?? groundLevel();
+        }
+        return groundYAt(x);
       }
 
       function addFallingSpikes(segment, position = .5) {
@@ -1198,6 +1179,7 @@
             index
           };
           groundSegments.push(segment);
+          if (gap) for (const cave of caves) prepareCave(cave);
           if (index % 3 !== 0) addTank(segment, .5);
           if (index >= 2 && index % 5 === 2) {
             addEnemy(segment, index);
@@ -1283,6 +1265,9 @@
         caves.length = 0;
         tanks.length = 0;
         lasers.length = 0;
+        caveEnemies.length = 0;
+        caveObstacles.length = 0;
+        moonDustPickups.length = 0;
         nextGroundIndex = 1;
         goal = null;
 
@@ -1315,6 +1300,7 @@
           });
           stageLabel.textContent = `LEVEL ${currentLevel + 1} · ${route.name}`;
           updateGroundObjects();
+          for (const cave of caves) prepareCave(cave);
         } else {
           stageLabel.textContent = "ENDLOSMODUS · ABSCHNITT 1";
           ensureGroundSegments();
@@ -1342,8 +1328,6 @@
         isDying = false;
         pendingLevelAdvance = false;
         pendingResume = false;
-        caveMode = false;
-        activeCave = null;
         slideHeld = false;
         slideButton.classList.remove("active");
       }
@@ -1664,8 +1648,13 @@
         const visibleCaves = caves.filter(cave => cave.x + cave.width > startX && cave.x < endX);
         const points = [{ x: startX, y: groundYAt(startX) }];
         for (const segment of groundSegments) {
-          const center = segment.x + segment.width / 2;
-          if (center > startX && center < endX) points.push({ x: center, y: segment.y });
+          if (segment.x + segment.width < startX || segment.x > endX) continue;
+          const previousPoint = points[points.length - 1];
+          if (previousPoint && segment.x > previousPoint.x) {
+            points.push({ x: previousPoint.x, y: segment.y });
+          }
+          points.push({ x: segment.x, y: segment.y });
+          points.push({ x: segment.x + segment.width, y: segment.y });
         }
         points.push({ x: endX, y: groundYAt(endX) });
 
@@ -1712,22 +1701,23 @@
       }
 
       function drawCaveMarker(cave) {
-        const x = cave.x - cameraX;
-        const y = groundYAt(cave.x) - cameraY;
-        if (x + cave.width < -40 || x > width + 40 || y < -90 || y > height + 40) return;
+        const x = cave.gapStart - cameraX;
+        const y = groundYAt(cave.gapStart) - cameraY;
+        const caveWidth = cave.gapEnd - cave.gapStart;
+        if (x + caveWidth < -40 || x > width + 40 || y < -90 || y > height + 40) return;
         ctx.save();
         ctx.fillStyle = "#050710";
-        ctx.fillRect(x, y - 1, cave.width, 166);
+        ctx.fillRect(x, y - 1, caveWidth, 166);
         ctx.fillStyle = "#a9adb0";
         ctx.fillRect(x - 3, y - 3, 3, 8);
-        ctx.fillRect(x + cave.width, y - 3, 3, 8);
+        ctx.fillRect(x + caveWidth, y - 3, 3, 8);
         ctx.strokeStyle = "#3e4555";
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(x, y + 1);
         ctx.lineTo(x, y + 158);
-        ctx.moveTo(x + cave.width, y + 1);
-        ctx.lineTo(x + cave.width, y + 158);
+        ctx.moveTo(x + caveWidth, y + 1);
+        ctx.lineTo(x + caveWidth, y + 158);
         ctx.stroke();
         ctx.restore();
       }
@@ -1750,80 +1740,6 @@
         ctx.fillStyle = "#d9fff3";
         ctx.fillRect(x - 3, y - 10, 6, 3);
         ctx.restore();
-      }
-
-      function drawCaveScene(time) {
-        const caveBackground = ctx.createLinearGradient(0, 0, 0, height);
-        caveBackground.addColorStop(0, "#11162a");
-        caveBackground.addColorStop(.65, "#080b14");
-        caveBackground.addColorStop(1, "#02030a");
-        ctx.fillStyle = caveBackground;
-        ctx.fillRect(0, 0, width, height);
-        const floorPoints = [];
-        for (let screenX = 0; screenX <= width + 24; screenX += 24) {
-          floorPoints.push({ x: screenX, y: caveGroundYAt(cameraX + screenX) - cameraY });
-        }
-        ctx.fillStyle = "#37343a";
-        ctx.beginPath();
-        ctx.moveTo(0, height + 10);
-        for (let i = floorPoints.length - 1; i >= 0; i--) ctx.lineTo(floorPoints[i].x, floorPoints[i].y);
-        ctx.lineTo(width, height + 10);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = "#8f8263";
-        ctx.beginPath();
-        floorPoints.forEach((point, index) => {
-          if (index === 0) ctx.moveTo(point.x, point.y);
-          else ctx.lineTo(point.x, point.y);
-        });
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "#8f8263";
-        ctx.stroke();
-        for (let x = -((cameraX % 190) + 190) % 190; x < width; x += 190) {
-          const crystalY = caveGroundYAt(cameraX + x) - cameraY - 38 - Math.sin(time * .003 + x) * 5;
-          ctx.fillStyle = "#ffe28a";
-          ctx.shadowColor = "#ffe28a";
-          ctx.shadowBlur = 12;
-          ctx.beginPath();
-          ctx.moveTo(x, crystalY - 9);
-          ctx.lineTo(x + 7, crystalY);
-          ctx.lineTo(x, crystalY + 9);
-          ctx.lineTo(x - 7, crystalY);
-          ctx.closePath();
-          ctx.fill();
-        }
-        ctx.shadowBlur = 0;
-        ctx.lineWidth = 1;
-        for (const obstacle of caveObstacles) drawCrate(obstacle);
-        for (const enemy of caveEnemies) drawEnemy(enemy, time);
-        for (const pickup of moonDustPickups) {
-          if (pickup.taken) continue;
-          const x = pickup.x - cameraX;
-          const y = pickup.y - cameraY + Math.sin(time * .003 + pickup.x) * 4;
-          ctx.fillStyle = "#c4b5ff";
-          ctx.shadowColor = "#c4b5ff";
-          ctx.shadowBlur = 14;
-          ctx.beginPath();
-          ctx.arc(x, y, 7, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.shadowBlur = 0;
-        for (const laser of lasers) drawLaser(laser);
-        const exitScreenX = activeCave.exitX - cameraX;
-        if (exitScreenX < width + 80) {
-          const exitFloorY = caveGroundYAt(activeCave.exitX) - cameraY;
-          ctx.fillStyle = "#8df5ec";
-          ctx.shadowColor = "#8df5ec";
-          ctx.shadowBlur = 24;
-          ctx.beginPath();
-          ctx.ellipse(exitScreenX, exitFloorY - 34, 20, 36, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.fillStyle = "#10182b";
-          ctx.beginPath();
-          ctx.ellipse(exitScreenX, exitFloorY - 34, 11, 27, 0, 0, Math.PI * 2);
-          ctx.fill();
-        }
       }
 
       function drawEnemy(enemy, time) {
@@ -2161,112 +2077,6 @@
         const previousX = player.x;
         const wasGrounded = player.grounded;
 
-        if (caveMode) {
-          player.vx += input * 1550 * character.speed * (1 + saveData.speedLevel * .1) * dt;
-          if (input === 0) player.vx *= Math.pow(.0008, dt);
-          player.vx = Math.max(-300, Math.min(300, player.vx));
-          player.x += player.vx * dt;
-          for (const obstacle of caveObstacles) {
-            if (player.x + player.width > obstacle.x && player.x < obstacle.x + obstacle.width
-              && player.y + player.height > obstacle.y && player.y < obstacle.y + obstacle.height) {
-              player.x = player.x > previousX ? obstacle.x - player.width : obstacle.x + obstacle.width;
-              player.vx = 0;
-              break;
-            }
-          }
-          if (wasGrounded && player.platform) {
-            const stillOverPlatform = player.x + player.width > player.platform.x
-              && player.x < player.platform.x + player.platform.width;
-            if (stillOverPlatform) {
-              player.y = player.platform.y - player.height;
-              player.vy = 0;
-              player.grounded = true;
-            } else {
-              player.platform = null;
-              player.grounded = false;
-            }
-          }
-          const previousBottom = player.y + player.height;
-          player.vy += gravity * dt;
-          player.y += player.vy * dt;
-          const caveFloor = caveGroundYAt(player.x + player.width / 2);
-          let landedOnCrate = false;
-          if (player.vy >= 0) {
-            for (const obstacle of caveObstacles) {
-              const overlapsHorizontally = player.x + player.width > obstacle.x
-                && player.x < obstacle.x + obstacle.width;
-              if (overlapsHorizontally && previousBottom <= obstacle.y + 1
-                && player.y + player.height >= obstacle.y) {
-                player.y = obstacle.y - player.height;
-                player.vy = 0;
-                player.grounded = true;
-                player.platform = obstacle;
-                player.jumpStrength = 0;
-                landedOnCrate = true;
-                break;
-              }
-            }
-          }
-          if (!landedOnCrate && player.vy >= 0 && previousBottom <= caveFloor && player.y + player.height >= caveFloor) {
-            player.y = caveFloor - player.height;
-            player.vy = 0;
-            player.grounded = true;
-            player.platform = null;
-            player.jumpStrength = 0;
-          } else if (!landedOnCrate) {
-            player.grounded = false;
-          }
-          for (const enemy of caveEnemies) {
-            enemy.x += enemy.direction * enemy.speed * dt;
-            enemy.y = caveGroundYAt(enemy.x) - 28;
-            if (enemy.x < enemy.minX || enemy.x > enemy.maxX) {
-              enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
-              enemy.direction *= -1;
-            }
-          }
-          for (let i = caveEnemies.length - 1; i >= 0; i--) {
-            const enemy = caveEnemies[i];
-            const overlaps = player.x + player.width > enemy.x && player.x < enemy.x + 28
-              && player.y + player.height > enemy.y && player.y < enemy.y + 28;
-            if (!overlaps) continue;
-            if (player.vy > 0 && previousBottom <= enemy.y + 8 && player.jumpStrength >= .9) {
-              caveEnemies.splice(i, 1);
-              player.y = enemy.y - player.height;
-              player.vy = -420;
-              player.jumpStrength = 0;
-              saveData.money += 5;
-              saveProgress();
-              addBurst(enemy.x + 14, enemy.y + 14, "#ff8ba6", 14);
-            } else {
-              beginDeath("Ein Höhlenroboter hat dich erwischt!");
-              return;
-            }
-          }
-          for (const pickup of moonDustPickups) {
-            if (!pickup.taken && Math.hypot(player.x + player.width / 2 - pickup.x, player.y + player.height / 2 - pickup.y) < 30) {
-              pickup.taken = true;
-              saveData.money += 2;
-              saveProgress();
-              addBurst(pickup.x, pickup.y, "#c4b5ff", 10);
-            }
-          }
-          for (const tank of tanks) {
-            if (!tank.taken && tanksThisRun < 6 + saveData.tankLevel * 2
-              && Math.hypot(player.x + player.width / 2 - tank.x, player.y + player.height / 2 - tank.y) < 34) {
-              tank.taken = true;
-              tanksThisRun++;
-              updateTankHud();
-              addBurst(tank.x, tank.y, "#8df5ec", 12);
-            }
-          }
-          updateLasers(dt);
-          updateParticles(dt);
-          cameraX += (player.x - width * .36 - cameraX) * Math.min(1, dt * 4);
-          cameraY += (player.y - height * .52 - cameraY) * Math.min(1, dt * 3.2);
-          if (player.x >= activeCave.exitX) leaveCave();
-          return;
-        }
-
         const slideRequested = slideHeld || keys.has("shift") || keys.has("arrowdown") || keys.has("s");
         if (slideRequested && !player.sliding) {
           const bottom = player.y + player.height;
@@ -2303,6 +2113,15 @@
             break;
           }
         }
+        for (const obstacle of caveObstacles) {
+          const overlapsHorizontally = player.x + player.width > obstacle.x && player.x < obstacle.x + obstacle.width;
+          const overlapsVertically = player.y + player.height > obstacle.y && player.y < obstacle.y + obstacle.height;
+          if (overlapsHorizontally && overlapsVertically) {
+            player.x = player.x > previousX ? obstacle.x - player.width : obstacle.x + obstacle.width;
+            player.vx = 0;
+            break;
+          }
+        }
         player.x = Math.max(groundSegments[0].x, player.x);
         if (gameMode === "levels") {
           const finalSegment = groundSegments[groundSegments.length - 1];
@@ -2322,7 +2141,7 @@
               player.grounded = false;
             }
           } else {
-            const opening = caves.find(cave => centerX > cave.x && centerX < cave.x + cave.width);
+            const opening = caves.find(cave => centerX > cave.gapStart && centerX < cave.gapEnd);
             if (opening) {
               player.y = groundYAt(centerX) - player.height;
               player.grounded = false;
@@ -2341,6 +2160,40 @@
           if (enemy.x < enemy.minX || enemy.x > enemy.maxX) {
             enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
             enemy.direction *= -1;
+          }
+        }
+        for (const enemy of caveEnemies) {
+          enemy.x += enemy.direction * enemy.speed * dt;
+          enemy.y = caveGroundYAt(enemy.x) - 28;
+          if (enemy.x < enemy.minX || enemy.x > enemy.maxX) {
+            enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
+            enemy.direction *= -1;
+          }
+        }
+        for (let i = caveEnemies.length - 1; i >= 0; i--) {
+          const enemy = caveEnemies[i];
+          const overlaps = player.x + player.width > enemy.x && player.x < enemy.x + 28
+            && player.y + player.height > enemy.y && player.y < enemy.y + 28;
+          if (!overlaps) continue;
+          if (player.vy > 0 && previousBottom <= enemy.y + 8 && player.jumpStrength >= .9) {
+            caveEnemies.splice(i, 1);
+            player.y = enemy.y - player.height;
+            player.vy = -420;
+            player.jumpStrength = 0;
+            saveData.money += 5;
+            saveProgress();
+            addBurst(enemy.x + 14, enemy.y + 14, "#ff8ba6", 14);
+          } else {
+            beginDeath("Ein Höhlenroboter hat dich erwischt!");
+            return;
+          }
+        }
+        for (const pickup of moonDustPickups) {
+          if (!pickup.taken && Math.hypot(player.x + player.width / 2 - pickup.x, player.y + player.height / 2 - pickup.y) < 30) {
+            pickup.taken = true;
+            saveData.money += 2;
+            saveProgress();
+            addBurst(pickup.x, pickup.y, "#c4b5ff", 10);
           }
         }
 
@@ -2420,7 +2273,7 @@
 
         const centerX = player.x + player.width / 2;
         const floorY = groundYAt(centerX);
-        const caveOpening = caves.find(cave => centerX > cave.x && centerX < cave.x + cave.width);
+        const caveOpening = caves.find(cave => centerX > cave.gapStart && centerX < cave.gapEnd);
         let landedOnCrate = false;
         if (player.vy >= 0) {
           for (const obstacle of obstacles) {
@@ -2438,9 +2291,33 @@
               break;
             }
           }
+          if (!landedOnCrate) {
+            for (const obstacle of caveObstacles) {
+              if (obstacle.type !== "crate") continue;
+              const overlapsHorizontally = player.x + player.width > obstacle.x
+                && player.x < obstacle.x + obstacle.width;
+              if (overlapsHorizontally && previousBottom <= obstacle.y + 1
+                && player.y + player.height >= obstacle.y) {
+                player.y = obstacle.y - player.height;
+                player.vy = 0;
+                player.grounded = true;
+                player.platform = obstacle;
+                player.jumpStrength = 0;
+                landedOnCrate = true;
+                break;
+              }
+            }
+          }
         }
-        if (!landedOnCrate && caveOpening && player.vy >= 0 && player.y + player.height >= floorY) {
-          enterCave(caveOpening);
+        if (!landedOnCrate && caveOpening && player.vy >= 0) {
+          const caveFloor = caveGroundYAt(centerX);
+          if (player.y + player.height >= caveFloor) {
+            player.y = caveFloor - player.height;
+            player.vy = 0;
+            player.grounded = true;
+            player.platform = null;
+            player.jumpStrength = 0;
+          }
         } else if (!landedOnCrate && player.vy >= 0 && player.y + player.height >= floorY) {
           player.y = floorY - player.height;
           player.vy = 0;
@@ -2499,7 +2376,7 @@
       function pruneEndlessCourse() {
         const cutoff = cameraX - width * 1.5;
         while (groundSegments.length > 1 && groundSegments[0].x + groundSegments[0].width < cutoff) groundSegments.shift();
-        for (const collection of [enemies, obstacles, fallingSpikes, caves, tanks]) {
+        for (const collection of [enemies, obstacles, fallingSpikes, caves, tanks, caveEnemies, caveObstacles, moonDustPickups]) {
           for (let i = collection.length - 1; i >= 0; i--) {
             const item = collection[i];
             const itemWidth = item.width || 28;
@@ -2531,11 +2408,6 @@
       }
 
       function render(time) {
-        if (caveMode) {
-          drawCaveScene(time);
-          drawPlayer(time);
-          return;
-        }
         drawBackground(time);
         drawGround();
         for (const cave of caves) drawCaveMarker(cave);
@@ -2548,6 +2420,23 @@
         }
         for (const spike of fallingSpikes) drawFallingSpikes(spike);
         for (const enemy of enemies) drawEnemy(enemy, time);
+        for (const obstacle of caveObstacles) {
+          if (obstacle.type === "wall") drawWall(obstacle);
+          else drawCrate(obstacle);
+        }
+        for (const enemy of caveEnemies) drawEnemy(enemy, time);
+        for (const pickup of moonDustPickups) {
+          if (pickup.taken) continue;
+          const x = pickup.x - cameraX;
+          const y = pickup.y - cameraY + Math.sin(time * .003 + pickup.x) * 4;
+          ctx.fillStyle = "#c4b5ff";
+          ctx.shadowColor = "#c4b5ff";
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(x, y, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
         drawGoal(time);
         for (const tank of tanks) drawTank(tank, time);
         for (const laser of lasers) drawLaser(laser);
