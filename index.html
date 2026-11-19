@@ -138,43 +138,37 @@
       pointer-events: none;
     }
 
-    .stick, .jump, .slide, .laser, .boost {
+    .direction-controls, .direction-arrow, .jump, .slide, .laser, .boost {
       pointer-events: auto;
       touch-action: none;
       -webkit-tap-highlight-color: transparent;
     }
 
-    .stick {
-      position: relative;
-      width: 116px;
-      height: 116px;
-      border: 1px solid #ffffff25;
-      border-radius: 50%;
-      background: #c6d4ff0d;
-      box-shadow: inset 0 0 24px #a5baff0d, 0 8px 30px #0003;
+    .direction-controls {
+      display: flex;
+      gap: 10px;
+      pointer-events: none;
     }
 
-    .stick::before, .stick::after {
-      position: absolute;
-      content: "";
-      background: #ffffff18;
+    .direction-arrow {
+      display: grid;
+      width: 66px;
+      height: 66px;
+      place-items: center;
+      border: 1px solid #ffffff30;
+      border-radius: 18px;
+      background: #c6d4ff18;
+      box-shadow: 0 8px 30px #0003, inset 0 1px 4px #fff2;
+      color: #f4f4ff;
+      font: inherit;
+      font-size: 32px;
+      font-weight: 800;
+      cursor: pointer;
     }
 
-    .stick::before { top: 50%; left: 18px; right: 18px; height: 1px; }
-    .stick::after { top: 18px; bottom: 18px; left: 50%; width: 1px; }
-
-    .stick-knob {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 47px;
-      height: 47px;
-      border: 1px solid #b9c9ff80;
-      border-radius: 50%;
-      background: linear-gradient(145deg, #dce5ff55, #8294d433);
-      box-shadow: 0 0 20px #90a6ff35, inset 0 1px 5px #fff3;
-      transform: translate(-50%, -50%);
-      transition: background .12s;
+    .direction-arrow.active {
+      background: #8df5ec38;
+      border-color: #9af4e5a0;
     }
 
     .jump, .laser, .boost {
@@ -477,7 +471,8 @@
       .hint { top: 70px; width: 90%; font-size: 10px; white-space: normal; }
       .stage { top: 112px; font-size: 9px; }
       .controls { right: max(22px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); left: max(22px, env(safe-area-inset-left)); }
-      .stick { width: 104px; height: 104px; }
+      .direction-controls { gap: 8px; }
+      .direction-arrow { width: 58px; height: 58px; font-size: 28px; }
       .jump { width: 76px; height: 76px; font-size: 10px; }
       .slide, .laser, .boost { width: 62px; height: 36px; font-size: 8px; }
       .menu-card { padding: 25px 17px; }
@@ -493,12 +488,13 @@
     <div class="brand">Eine Reise über den Mond<strong>MONDHÜPFER</strong></div>
     <div class="score">Tanks<strong id="score">0</strong></div>
     <button class="return-menu" id="returnMenu" type="button" aria-label="Zurück zum Menü">MENÜ</button>
-    <div class="hint">Laufen: Joystick / ← → · Sprung: Leertaste · Supersprung: ↑ / BOOST · Laser: X · Höhle: hineinfallen</div>
+    <div class="hint">Laufen: ← → · Sprung: Leertaste · Supersprung: ↑ / BOOST · Laser: X · Höhle: hineinfallen</div>
     <div class="stage" id="stage"></div>
     <div class="message" id="message">Autsch, in einem Krater gelandet!<br>Du startest gleich wieder von vorn.</div>
     <div class="controls">
-      <div class="stick" id="stick" aria-label="Joystick zum Steuern">
-        <div class="stick-knob" id="knob"></div>
+      <div class="direction-controls" aria-label="Laufrichtung">
+        <button class="direction-arrow" id="moveLeft" type="button" aria-label="Nach links laufen">←</button>
+        <button class="direction-arrow" id="moveRight" type="button" aria-label="Nach rechts laufen">→</button>
       </div>
       <div class="action-buttons">
         <button class="slide" id="slide" type="button" aria-label="Zum Rutschen gedrückt halten">RUTSCH</button>
@@ -586,8 +582,8 @@
     (() => {
       const canvas = document.getElementById("game");
       const ctx = canvas.getContext("2d");
-      const stick = document.getElementById("stick");
-      const knob = document.getElementById("knob");
+      const moveLeftButton = document.getElementById("moveLeft");
+      const moveRightButton = document.getElementById("moveRight");
       const jumpButton = document.getElementById("jump");
       const boostButton = document.getElementById("boost");
       const laserButton = document.getElementById("laser");
@@ -651,7 +647,11 @@
         { name: "Basaltbogen", steps: [[58, 0, 180, "enemy"], [0, 24, 180, "crate"], [0, -24, 190, "wall"], [58, 0, 180, "plain"], [0, 0, 180, "enemy"], [0, 0, 200, "goal"]] },
         { name: "Schattenschacht", steps: [[0, 0, 180, "crate"], [58, 0, 190, "spikes"], [0, 0, 180, "enemy"], [0, 0, 190, "wall"], [58, 0, 180, "crate"], [0, 0, 200, "goal"]] },
         { name: "Mondmeer", steps: [[0, 0, 185, "enemy"], [58, 25, 180, "wall"], [0, -25, 180, "crate"], [0, 0, 190, "spikes"], [58, 0, 180, "enemy"], [0, 0, 200, "goal"]] },
-        { name: "Lichtlose Tiefe", steps: [[58, 0, 190, "crate"], [0, 0, 180, "enemy"], [0, 0, 190, "wall"], [58, 0, 180, "spikes"], [0, 0, 190, "crate"], [0, 0, 200, "goal"]] }
+        { name: "Lichtlose Tiefe", steps: [[58, 0, 190, "crate"], [0, 0, 180, "enemy"], [0, 0, 190, "wall"], [58, 0, 180, "spikes"], [0, 0, 190, "crate"], [0, 0, 200, "goal"]] },
+        { name: "Aschewüste", steps: [[0, -25, 190, "enemy"], [58, 20, 180, "plain"], [0, -35, 185, "wall"], [58, 30, 180, "plain"], [0, -15, 190, "spikes"], [0, 0, 200, "goal"]] },
+        { name: "Glaskrater", steps: [[58, 25, 180, "spikes"], [0, -20, 190, "plain"], [58, 35, 180, "enemy"], [0, -40, 185, "crate"], [58, 25, 180, "plain"], [0, 0, 200, "goal"]] },
+        { name: "Verlorene Station", steps: [[0, 35, 185, "wall"], [58, -30, 180, "plain"], [0, 20, 190, "enemy"], [58, -35, 180, "barrier"], [0, 15, 185, "spikes"], [0, 0, 200, "goal"]] },
+        { name: "Polarlicht", steps: [[58, -35, 180, "enemy"], [0, 20, 190, "plain"], [58, -25, 180, "spikes"], [0, 35, 185, "wall"], [58, -20, 180, "enemy"], [0, 0, 200, "goal"]] }
       ];
       let width = 0;
       let height = 0;
@@ -691,7 +691,8 @@
       let lastTime = 0;
       let messageTimer = 0;
       let selectedCharacter = "astro";
-      let joystickPointer = null;
+      let leftPressed = false;
+      let rightPressed = false;
       let slidePointer = null;
 
       function resize() {
@@ -752,6 +753,30 @@
         const caveWidth = Math.min(88, gapWidth - 10);
         const x = gapStart + (gapWidth - caveWidth) / 2;
         caves.push({ x, width: caveWidth, exitX: x + 460 });
+      }
+
+      const spawnClearance = 28;
+
+      function hasSpawnClearance(x, width) {
+        const overlaps = item => x < item.x + item.width + spawnClearance
+          && x + width + spawnClearance > item.x;
+        if ([...obstacles, ...fallingSpikes].some(overlaps)) return false;
+        return !tanks.some(tank => x < tank.x + 12 + spawnClearance
+          && x + width + spawnClearance > tank.x - 12);
+      }
+
+      function addTank(segment, position = .5) {
+        const tankWidth = 24;
+        const positions = [position, .25, .75, .38, .62];
+        for (const candidatePosition of positions) {
+          const x = Math.max(segment.x + 8, Math.min(
+            segment.x + segment.width - tankWidth - 8,
+            segment.x + segment.width * candidatePosition - tankWidth / 2
+          ));
+          if (!hasSpawnClearance(x, tankWidth)) continue;
+          tanks.push({ x: x + tankWidth / 2, y: segment.y - 38, taken: false, phase: segment.index });
+          return;
+        }
       }
 
       function saveProgress() {
@@ -1053,19 +1078,55 @@
         activeCave.surfaceY = groundYAt(cave.x + cave.width / 2);
         activeCave.floorY = activeCave.surfaceY + 150;
         activeCave.exitX = cave.x + 460;
+        activeCave.groundSegments = [];
+        const caveHeights = [0, -18, 12, -22, 16, -8];
+        for (let i = 0; i < caveHeights.length; i++) {
+          const x = cave.x + i * 92;
+          activeCave.groundSegments.push({
+            x,
+            y: activeCave.floorY + caveHeights[i],
+            width: 92
+          });
+        }
         caveEnemies.length = 0;
         caveObstacles.length = 0;
         moonDustPickups.length = 0;
-        for (let i = 0; i < 4; i++) {
-          const x = cave.x + 110 + i * 95;
-          caveEnemies.push({ x, y: activeCave.floorY - 28, minX: x - 30, maxX: x + 36, direction: i % 2 ? -1 : 1, speed: 45 + i * 5, phase: i });
-          if (i % 2 === 0) caveObstacles.push({ x: x + 45, y: activeCave.floorY - 34, width: 34, height: 34, type: "crate" });
-          moonDustPickups.push({ x: x + 18, y: activeCave.floorY - 70, taken: false });
+        for (let i = 0; i < 2; i++) {
+          const x = cave.x + 92 + i * 190;
+          const floorY = caveGroundYAt(x);
+          caveEnemies.push({ x, y: floorY - 28, minX: x - 22, maxX: x + 22, direction: i % 2 ? -1 : 1, speed: 50 + i * 8, phase: i });
+          moonDustPickups.push({ x: x + 12, y: floorY - 70, taken: false });
+          const crateX = cave.x + 183 + i * 190;
+          caveObstacles.push({
+            x: crateX,
+            y: caveGroundYAt(crateX + 17) - 34,
+            width: 34,
+            height: 34,
+            type: "crate"
+          });
         }
         player.sliding = false;
         slideHeld = false;
         slideButton.classList.remove("active");
         stageLabel.textContent = "HÖHLENWEG · TANKS UND MONDSTAUB";
+      }
+
+      function caveGroundYAt(x) {
+        if (!activeCave || !activeCave.groundSegments?.length) return activeCave?.floorY ?? groundLevel();
+        const segments = activeCave.groundSegments;
+        const firstCenter = segments[0].x + segments[0].width / 2;
+        if (x <= firstCenter) return segments[0].y;
+        for (let i = 1; i < segments.length; i++) {
+          const previous = segments[i - 1];
+          const current = segments[i];
+          const previousCenter = previous.x + previous.width / 2;
+          const currentCenter = current.x + current.width / 2;
+          if (x <= currentCenter) {
+            const progress = (x - previousCenter) / (currentCenter - previousCenter);
+            return previous.y + (current.y - previous.y) * progress;
+          }
+        }
+        return segments[segments.length - 1].y;
       }
 
       function leaveCave() {
@@ -1116,10 +1177,10 @@
           const gap = index >= 4 && index % 4 === 1 ? 100 : 0;
           const x = previous.x + previous.width + gap;
           if (gap) addCave(previous.x + previous.width, gap);
-          const terrainPattern = [0, 76, -58, 92, -72, 48, -36];
+          const terrainPattern = [0, 0, 0, 22, 0, 0, -20, 0, 0, 0, 38, 0];
           const segment = { x, y: groundLevel() + terrainPattern[index % terrainPattern.length], width: 174 + (index % 2) * 26, index };
           groundSegments.push(segment);
-          if (index % 2 === 1) tanks.push({ x: x + 84, y: segment.y - 38, taken: false, phase: index });
+          if (index % 2 === 1) addTank(segment, .5);
           if (index >= 2 && index % 3 === 2) {
             addEnemy(segment, index);
           }
@@ -1183,9 +1244,7 @@
         const positions = [position, .2, .38, .5, .68, .84];
         for (const candidatePosition of positions) {
           const x = Math.max(minX, Math.min(maxX, segment.x + segment.width * candidatePosition - width / 2));
-          const overlaps = [...obstacles, ...fallingSpikes].some(item =>
-            x < item.x + item.width + 22 && x + width + 22 > item.x);
-          if (!overlaps) return x;
+          if (hasSpawnClearance(x, width)) return x;
         }
         return null;
       }
@@ -1218,7 +1277,7 @@
               index: stepIndex + 1
             };
             groundSegments.push(segment);
-            if (stepIndex % 2 === 0) tanks.push({ x: segment.x + segment.width / 2, y: segment.y - 38, taken: false, phase: stepIndex });
+            if (stepIndex % 2 === 0) addTank(segment);
             if (feature === "spikes") addSpikes(segment, .62);
             if (feature === "barrier") addBarrier(segment);
             if (feature === "enemy") addEnemy(segment, stepIndex + 2);
@@ -1337,42 +1396,37 @@
         }
       }
 
-      function setJoystick(clientX, clientY) {
-        const rect = stick.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const max = rect.width * .32;
-        const dx = clientX - centerX;
-        const dy = clientY - centerY;
-        const length = Math.hypot(dx, dy) || 1;
-        const scale = Math.min(1, max / length);
-        const knobX = dx * scale;
-        const knobY = dy * scale;
-        knob.style.left = `calc(50% + ${knobX}px)`;
-        knob.style.top = `calc(50% + ${knobY}px)`;
-        direction = Math.abs(knobX) < 8 ? 0 : knobX / max;
+      function updateDirectionControls() {
+        direction = Number(rightPressed) - Number(leftPressed);
+        moveLeftButton.classList.toggle("active", leftPressed);
+        moveRightButton.classList.toggle("active", rightPressed);
       }
 
-      function releaseJoystick() {
-        joystickPointer = null;
+      function releaseDirectionControls() {
+        leftPressed = false;
+        rightPressed = false;
         direction = 0;
-        knob.style.left = "50%";
-        knob.style.top = "50%";
+        moveLeftButton.classList.remove("active");
+        moveRightButton.classList.remove("active");
       }
 
-      stick.addEventListener("pointerdown", event => {
-        event.preventDefault();
-        joystickPointer = event.pointerId;
-        stick.setPointerCapture(event.pointerId);
-        setJoystick(event.clientX, event.clientY);
-      });
-      stick.addEventListener("pointermove", event => {
-        if (event.pointerId === joystickPointer) setJoystick(event.clientX, event.clientY);
-      });
-      stick.addEventListener("pointerup", event => {
-        if (event.pointerId === joystickPointer) releaseJoystick();
-      });
-      stick.addEventListener("pointercancel", releaseJoystick);
+      for (const [button, side] of [[moveLeftButton, "left"], [moveRightButton, "right"]]) {
+        const release = () => {
+          if (side === "left") leftPressed = false;
+          else rightPressed = false;
+          updateDirectionControls();
+        };
+        button.addEventListener("pointerdown", event => {
+          event.preventDefault();
+          if (side === "left") leftPressed = true;
+          else rightPressed = true;
+          button.setPointerCapture(event.pointerId);
+          updateDirectionControls();
+        });
+        button.addEventListener("pointerup", release);
+        button.addEventListener("pointercancel", release);
+        button.addEventListener("lostpointercapture", release);
+      }
 
       jumpButton.addEventListener("click", () => jump());
       boostButton.addEventListener("click", () => jump(true));
@@ -1433,7 +1487,7 @@
       });
       window.addEventListener("blur", () => {
         keys.clear();
-        releaseJoystick();
+        releaseDirectionControls();
         slideHeld = false;
         slideButton.classList.remove("active");
       });
@@ -1502,7 +1556,7 @@
       returnMenuButton.addEventListener("click", () => {
         gameStarted = false;
         keys.clear();
-        releaseJoystick();
+        releaseDirectionControls();
         slideHeld = false;
         slidePointer = null;
         slideButton.classList.remove("active");
@@ -1667,20 +1721,34 @@
       }
 
       function drawCaveScene(time) {
-        const caveFloorY = activeCave.floorY;
-        const floorScreenY = caveFloorY - cameraY;
         const caveBackground = ctx.createLinearGradient(0, 0, 0, height);
         caveBackground.addColorStop(0, "#11162a");
         caveBackground.addColorStop(.65, "#080b14");
         caveBackground.addColorStop(1, "#02030a");
         ctx.fillStyle = caveBackground;
         ctx.fillRect(0, 0, width, height);
+        const floorPoints = [];
+        for (let screenX = 0; screenX <= width + 24; screenX += 24) {
+          floorPoints.push({ x: screenX, y: caveGroundYAt(cameraX + screenX) - cameraY });
+        }
         ctx.fillStyle = "#37343a";
-        ctx.fillRect(0, floorScreenY, width, height - floorScreenY + 10);
+        ctx.beginPath();
+        ctx.moveTo(0, height + 10);
+        for (let i = floorPoints.length - 1; i >= 0; i--) ctx.lineTo(floorPoints[i].x, floorPoints[i].y);
+        ctx.lineTo(width, height + 10);
+        ctx.closePath();
+        ctx.fill();
         ctx.fillStyle = "#8f8263";
-        ctx.fillRect(0, floorScreenY, width, 4);
+        ctx.beginPath();
+        floorPoints.forEach((point, index) => {
+          if (index === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#8f8263";
+        ctx.stroke();
         for (let x = -((cameraX % 190) + 190) % 190; x < width; x += 190) {
-          const crystalY = floorScreenY - 38 - Math.sin(time * .003 + x) * 5;
+          const crystalY = caveGroundYAt(cameraX + x) - cameraY - 38 - Math.sin(time * .003 + x) * 5;
           ctx.fillStyle = "#ffe28a";
           ctx.shadowColor = "#ffe28a";
           ctx.shadowBlur = 12;
@@ -1693,6 +1761,7 @@
           ctx.fill();
         }
         ctx.shadowBlur = 0;
+        ctx.lineWidth = 1;
         for (const obstacle of caveObstacles) drawCrate(obstacle);
         for (const enemy of caveEnemies) drawEnemy(enemy, time);
         for (const pickup of moonDustPickups) {
@@ -1710,16 +1779,17 @@
         for (const laser of lasers) drawLaser(laser);
         const exitScreenX = activeCave.exitX - cameraX;
         if (exitScreenX < width + 80) {
+          const exitFloorY = caveGroundYAt(activeCave.exitX) - cameraY;
           ctx.fillStyle = "#8df5ec";
           ctx.shadowColor = "#8df5ec";
           ctx.shadowBlur = 24;
           ctx.beginPath();
-          ctx.ellipse(exitScreenX, floorScreenY - 34, 20, 36, 0, 0, Math.PI * 2);
+          ctx.ellipse(exitScreenX, exitFloorY - 34, 20, 36, 0, 0, Math.PI * 2);
           ctx.fill();
           ctx.shadowBlur = 0;
           ctx.fillStyle = "#10182b";
           ctx.beginPath();
-          ctx.ellipse(exitScreenX, floorScreenY - 34, 11, 27, 0, 0, Math.PI * 2);
+          ctx.ellipse(exitScreenX, exitFloorY - 34, 11, 27, 0, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -2087,7 +2157,7 @@
           const previousBottom = player.y + player.height;
           player.vy += gravity * dt;
           player.y += player.vy * dt;
-          const caveFloor = activeCave.floorY;
+          const caveFloor = caveGroundYAt(player.x + player.width / 2);
           let landedOnCrate = false;
           if (player.vy >= 0) {
             for (const obstacle of caveObstacles) {
@@ -2116,7 +2186,7 @@
           }
           for (const enemy of caveEnemies) {
             enemy.x += enemy.direction * enemy.speed * dt;
-            enemy.y = activeCave.floorY - 28;
+            enemy.y = caveGroundYAt(enemy.x) - 28;
             if (enemy.x < enemy.minX || enemy.x > enemy.maxX) {
               enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
               enemy.direction *= -1;
